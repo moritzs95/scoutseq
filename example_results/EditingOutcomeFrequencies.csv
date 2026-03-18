@@ -1,0 +1,37 @@
+OutcomeType,Outcome,Frequency,Percentage
+RepairOutcome,Duplication-Insertion,44,22.22222222222222
+RepairOutcome,NHEJ-Deletion,26,13.131313131313133
+RepairOutcome,Translocation,23,11.616161616161616
+RepairOutcome,MMEJ-Deletion,21,10.606060606060606
+RepairOutcome,HDR,20,10.1010101010101
+RepairOutcome,Insertion,17,8.585858585858585
+RepairOutcome,IncorrectHDR,15,7.575757575757576
+RepairOutcome,LargeDeletion,12,6.0606060606060606
+RepairOutcome,NHEJ-Deletion+Substitution,8,4.040404040404041
+RepairOutcome,WT,4,2.0202020202020203
+RepairOutcome,MMEJ-Deletion+Substitution,4,2.0202020202020203
+RepairOutcome,Insertion+Substitution,2,1.0101010101010102
+RepairOutcome,IncompleteHDR-1,1,0.5050505050505051
+RepairOutcome,IncompleteHDR-2,1,0.5050505050505051
+GroupedRepairOutcome,Duplication-insertion,44,22.22222222222222
+GroupedRepairOutcome,Inter-chromosomal SV,23,11.616161616161616
+GroupedRepairOutcome,HDR,20,10.1010101010101
+GroupedRepairOutcome,PAM-distal NHEJ deletion,19,9.595959595959595
+GroupedRepairOutcome,Bidirectional MMEJ deletion,18,9.090909090909092
+GroupedRepairOutcome,Insertion,17,8.585858585858585
+GroupedRepairOutcome,Imperfect HDR,15,7.575757575757576
+GroupedRepairOutcome,Bidirectional NHEJ deletion,13,6.565656565656567
+GroupedRepairOutcome,Intra-chromosomal SV,12,6.0606060606060606
+GroupedRepairOutcome,WT,4,2.0202020202020203
+GroupedRepairOutcome,PAM-distal MMEJ deletion,4,2.0202020202020203
+GroupedRepairOutcome,PAM-proximal MMEJ deletion,3,1.5151515151515151
+GroupedRepairOutcome,PAM-proximal NHEJ deletion,2,1.0101010101010102
+GroupedRepairOutcome,Insertion+Substitution,2,1.0101010101010102
+GroupedRepairOutcome,IncompleteHDR-1,1,0.5050505050505051
+GroupedRepairOutcome,IncompleteHDR-2,1,0.5050505050505051
+RepairClass,Insertion,63,31.818181818181817
+RepairClass,HDR,37,18.68686868686869
+RepairClass,SV,35,17.67676767676768
+RepairClass,NHEJ-Deletion,34,17.17171717171717
+RepairClass,MMEJ-Deletion,25,12.626262626262626
+RepairClass,WT,4,2.0202020202020203
