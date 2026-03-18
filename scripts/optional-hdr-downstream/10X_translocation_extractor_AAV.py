@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct  8 13:19:08 2024
-
-@author: moritzschlapansky
+Summarize AAV remapping results for previously unaligned 10X translocation reads.
 """
 
 import pandas as pd

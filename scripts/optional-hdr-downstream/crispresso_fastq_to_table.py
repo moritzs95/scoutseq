@@ -1,3 +1,5 @@
+"""Convert HDR-enriched CRISPResso FASTQ output into tabular candidate events."""
+
 import pyfastx
 import re
 from collections import defaultdict

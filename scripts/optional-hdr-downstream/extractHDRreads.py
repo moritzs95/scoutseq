@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
 """
-Author:  Markus Schroeder
-Email:   markus@lanbico.com
-Created: 2022-12-01
+Split substitution-style HDR barcode reads away from the CRISPResso input.
 """
 
 import sys

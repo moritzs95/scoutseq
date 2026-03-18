@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Split insertion-style HDR barcode reads away from the CRISPResso input."""
+
 import sys
 import os
 import gzip

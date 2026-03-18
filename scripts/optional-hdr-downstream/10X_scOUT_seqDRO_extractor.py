@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Assign detailed repair outcomes from parse data to mouse cells edited at B2m or Son
+Assign detailed scOUTseq repair outcomes to 10X barcodes and write the
+editing-outcome report tables used by the final pipeline summary.
 """
 #specify target as first command line argument
 
@@ -194,6 +195,9 @@ elif target == "GAPDH_sg13_SNP":
     'I50plus': 30
     }"""
 
+# ---------------------------------------------------------------------------
+# Shared helpers and initial input loading
+# ---------------------------------------------------------------------------
 
 def hamming_distance(s1, s2):
     if len(s1) != len(s2):
@@ -206,6 +210,10 @@ def flatten(l):
     
 ROTable = pd.read_csv("../Hdr_mods.csv", header=0, low_memory=False)
 
+
+# ---------------------------------------------------------------------------
+# Cell-barcode normalization and whitelist-aware filtering
+# ---------------------------------------------------------------------------
 
 # Number of nuclei barcodes detected before filtering
 print(f"Number of unique barcodes before filtering: {ROTable['bc'].nunique()}")
@@ -230,6 +238,10 @@ num_filtered_overlap = len(filtered_overlap)
 print(f"Number of unique barcodes in filtered whitelist: {num_filtered_overlap}")
 
 ROTable = ROTable.fillna(0)
+
+# ---------------------------------------------------------------------------
+# UMI-level repair outcome assignment and quality filtering
+# ---------------------------------------------------------------------------
 
 # Remove nonaligning UMIs
 """
@@ -454,7 +466,9 @@ meanrc_per_cell = ROTable.groupby('bc')['totalrc'].mean()
 print('mean read count per cell:', meanrc_per_cell.mean())
 
 
-
+# ---------------------------------------------------------------------------
+# Collapse UMI-level evidence into per-cell allele dictionaries
+# ---------------------------------------------------------------------------
 
 #filter out true modifications
 UMImod = dict()
@@ -894,6 +908,10 @@ whitelist_unfiltered = set(whitelist_df_unfiltered['bc'].tolist())
 
 
 
+# ---------------------------------------------------------------------------
+# Build the wide per-cell allele table that feeds the final reports
+# ---------------------------------------------------------------------------
+
 DetailedRepairOutcome = {}
 
 with open('ModSelection.csv', 'w', newline='') as f:
@@ -978,6 +996,10 @@ with open('ModSelection.csv', 'w', newline='') as f:
 
 
         
+# ---------------------------------------------------------------------------
+# Summarize detailed allele calls across cells and export helper tables
+# ---------------------------------------------------------------------------
+
 # Step 1: Create a dictionary with HDR, important to set hdr barcode length!
 DetailedRepairOutcome_HDR = {}
 for key, value in DetailedRepairOutcome.items():
@@ -1074,6 +1096,10 @@ with open('NHEJ_X_allelecount.csv', mode='w') as fp:
 
 
   
+# ---------------------------------------------------------------------------
+# Reorder alleles, assign higher-level repair labels, and export reports
+# ---------------------------------------------------------------------------
+
 # Convert to DataFrame
 df = pd.read_csv('ModSelection.csv', low_memory=False)
 
@@ -1722,6 +1748,10 @@ plt.xlabel('Outcome Categories')
 plt.ylabel('Counts')
 plt.savefig('allele_combinedoutcome_counts.png', format='png', dpi=300)
 plt.close()
+
+# ---------------------------------------------------------------------------
+# Final cleanup: keep only the curated output set in the report directory
+# ---------------------------------------------------------------------------
 
 cleanup_dro_outputs()
 

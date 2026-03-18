@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Remap previously unaligned translocation reads to the AAV reference.
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,4 +1,6 @@
 #!/usr/bin/python
+"""Remove CRISPResso output reads that match known unwanted sequence patterns."""
+
 import sys
 import gzip
 import pyfastx

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Shared genome-resolution helpers for the remapping shell scripts.
+
 set -euo pipefail
 
 resolve_genome_file() {

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-"""Integrate translocation summaries into editing outcomes with minimal intermediates."""
+"""Integrate translocation summaries into editing outcomes with minimal intermediates.
+
+This consolidates the logic that previously lived in multiple post-processing
+scripts into a single reporting step at the end of the pipeline.
+"""
 
 from __future__ import annotations
 
@@ -59,6 +63,8 @@ def get_max_index(columns: list[str], prefix: str) -> int:
 
 
 def add_true_percentages(df: pd.DataFrame) -> pd.DataFrame:
+    # Add allele-level percentages relative to the total read and UMI counts for
+    # each cell barcode row.
     max_alleles = get_max_index(list(df.columns), "Allele")
     if max_alleles == 0:
         return df
@@ -78,6 +84,8 @@ def add_true_percentages(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def top_alleles(df: pd.DataFrame, threshold: float = 10.0, top_n: int = 2) -> pd.DataFrame:
+    # Keep only the dominant allele calls per cell to simplify downstream
+    # reporting and translocation merging.
     max_alleles = get_max_index(list(df.columns), "Allele")
     metadata_cols = [
         column
@@ -267,6 +275,8 @@ def merge_alleles_and_translocations(
     allele_df: pd.DataFrame,
     translocation_df: pd.DataFrame | None,
 ) -> pd.DataFrame:
+    # Combine editing outcomes with remapped translocation summaries while
+    # keeping total counts consistent across both data sources.
     if translocation_df is None or translocation_df.empty:
         merged = allele_df.copy()
         merged["location_count"] = 0
@@ -419,6 +429,8 @@ def classify_repair_outcome(outcome: object) -> object:
 
 
 def add_grouped_and_class_columns(df: pd.DataFrame) -> pd.DataFrame:
+    # Add higher-order grouped labels and broad repair classes next to the raw
+    # outcome columns for easier plotting and downstream summarization.
     df = df.copy()
     if "RepairOutcome_1" in df.columns and "RepairOutcome_2" in df.columns:
         df["RepairOutcome_2"] = df["RepairOutcome_2"].fillna(df["RepairOutcome_1"])

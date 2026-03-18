@@ -1,4 +1,6 @@
 #!/usr/bin/python
+"""Filter interleaved paired-end FASTQ records by sequence motifs in read 2."""
+
 import sys
 
 #get fname from parameter

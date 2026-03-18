@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-"""Rewrite PARSE FASTQ headers with barcode IDs from local lookup tables."""
+"""Rewrite PARSE FASTQ headers with barcode IDs from local lookup tables.
+
+This annotates the raw concatenated PARSE barcodes with plate/barcode IDs used
+by the downstream PARSE-specific analysis steps.
+"""
 
 from __future__ import annotations
 

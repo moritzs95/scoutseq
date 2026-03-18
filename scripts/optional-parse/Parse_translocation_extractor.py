@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct  8 13:19:08 2024
-
-@author: moritzschlapansky
+Summarize remapped PARSE translocation coordinates per cell barcode.
 """
 
 import pandas as pd
