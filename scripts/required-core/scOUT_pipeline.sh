@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-# Main entrypoint for the portable scOUTseq workflow. This script stitches
-# together FASTQ preprocessing, barcode extraction, CRISPResso, optional HDR
-# handling, translocation remapping, and the final editing outcome reports.
+# Main entrypoint for the scOUTseq analysis workflow. This script stitches together FASTQ preprocessing, barcode extraction and salvaging, CRISPResso alignment and editing outcome categorization, optional HDR barcode handling, translocation/large deletion detection and assignment, and the final editing outcome reports.
 
 set -euo pipefail
 
@@ -128,8 +126,7 @@ configure_barcode_extraction() {
 }
 
 run_whitelist_and_extract() {
-  # Build the whitelist first, then extract/error-correct cell barcodes and UMI
-  # annotations into a synchronized R1/R2 output pair.
+  # Build the whitelist first, then extract/error-correct cell barcodes and UMI annotations into a synchronized R1/R2 output pair.
   local whitelist_args=(
     --knee-method=density
     --subset-reads=999999999
@@ -175,8 +172,7 @@ annotate_parse_barcodes_if_needed() {
 }
 
 split_hdr_reads_if_needed() {
-  # Separate HDR-barcode reads from the CRISPResso input so downstream repair
-  # calling is not confounded by donor barcode sequence.
+  # Separate HDR-barcode reads from the CRISPResso input so downstream repair calling/crispresso alignment is not confounded by HDR barcode sequence.
   CRISPRESSO_INPUT_R2="${EXTRACTED_R2}"
 
   if [[ -z "${FILTERHDRREADSCONFIG:-}" ]]; then
@@ -222,8 +218,7 @@ get_crispresso_alignment_score() {
 }
 
 run_crispresso() {
-  # CRISPResso parameters vary slightly by target; centralize the branching here
-  # so the rest of the pipeline can stay linear.
+  # CRISPResso parameters vary slightly by target; centralize the branching here so the rest of the pipeline can stay linear.
   require_var "AMPLICONSEQ"
   require_var "GUIDE"
   require_var "CRISPRESSOWINDOW"
@@ -280,8 +275,7 @@ filter_crispresso_output_if_needed() {
 }
 
 run_hdr_postprocessing() {
-  # Convert HDR FASTQ output into tables, remap candidate off-target and
-  # translocation reads, then build final editing-outcome summaries.
+  # Convert HDR FASTQ output into tables, remap candidate off-target and translocation reads, then build final editing-outcome summaries.
   if [[ -z "${FILTERHDRREADSCONFIG:-}" ]]; then
     return 0
   fi
@@ -376,7 +370,6 @@ main() {
   CONFIG_PATH="$(cd "$(dirname "${config_path}")" && pwd)/$(basename "${config_path}")"
   CONFIG_DIR="$(dirname "${CONFIG_PATH}")"
 
-  # shellcheck disable=SC1090
   source "${CONFIG_PATH}"
 
   require_var "SAMPLENAME"

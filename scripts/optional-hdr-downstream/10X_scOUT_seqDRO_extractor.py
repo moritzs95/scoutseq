@@ -5,11 +5,11 @@ editing-outcome report tables used by the final pipeline summary.
 """
 #specify target as first command line argument
 
-#change WT_amplicon and left_anchor/right_anchor/HDR_anchor according to targeted gene
-#change sub_library according to barcode/sublibrary specification
-#change hdr barcode length (hdrbc_len, 12/15) according to HDR template specification
-#change zero_pad_barcode() depending if your barcodes are already zero padded
-#don't forget to specify the read length
+#specify WT_amplicon and left_anchor/right_anchor/HDR_anchor according to targeted gene
+#specify sub_library according to barcode/sublibrary specification
+#specify hdr barcode length (hdrbc_len, 12/15) according to HDR template specification
+#specify zero_pad_barcode() depending if your barcodes are already zero padded
+#specify the read length
 
 import pandas as pd
 import numpy as np
@@ -243,44 +243,6 @@ ROTable = ROTable.fillna(0)
 # UMI-level repair outcome assignment and quality filtering
 # ---------------------------------------------------------------------------
 
-# Remove nonaligning UMIs
-"""
-Filter criteria:
-UMIs with more than two gaps are filtered out.
-UMIs with two gaps are checked more carefully:
-If there's a short gap (1 base) paired with a larger gap (2 or more bases), the UMI is kept.
-If both gaps are relatively large (≥3 bases), the UMI is filtered out.
-UMIs with one or no gaps are considered valid and kept."""
-"""def count_continuous_gaps(alignment):
-    #remove trailing gaps (larger amplicon reference!)
-    alignment = alignment.rstrip('-')
-    gap_lengths = []
-    current_gap_length = 0
-    for char in alignment:
-        if char == '-':
-            current_gap_length += 1
-        else:
-            if current_gap_length > 0:
-                gap_lengths.append(current_gap_length)
-                current_gap_length = 0
-    if current_gap_length > 0:
-        gap_lengths.append(current_gap_length)
-    return gap_lengths
-
-def check_gaps(gap_lengths):
-    if len(gap_lengths) > 2:
-        return True
-    elif len(gap_lengths) == 2:
-        if gap_lengths.count(1) >= 1 and any(n >= 2 for n in gap_lengths if n != 1):
-            return False
-        elif all(n >= 3 for n in gap_lengths):
-            return True
-        else:
-            return False
-    else:
-        return False
-"""
-
 #assign UMI_repair Outcome
 conditions = [
     (ROTable['Reference_UNMODIFIED'] >= 3) & (ROTable['Reference_UNMODIFIED'] > ROTable['HDR']) & (ROTable['Reference_UNMODIFIED'] > ROTable['Reference_MODIFIED']),
@@ -367,33 +329,10 @@ def check_reads(row):
         try:
             number = int(parts.split('_')[1])
             mod = parts.split('_')[0]
-            
             if 'S' in mod and (mod.startswith('D') or mod.startswith('I')):
                 mod = mod.split('S')[0]  # Strip out the 'S' and the following substitution size
-
-            
             if number < min_required:
                 return False
-    
-            """mod_type = mod[0]
-            mod_size = int(mod[1:])
-          
-            if mod_type == 'D':
-                if (0 < mod_size <= 40 and aln_score < thresholds['D1_D40']) or \
-                   (40 < mod_size <= 50 and aln_score < thresholds['D40_D50']) or \
-                   (50 < mod_size <= 60 and aln_score < thresholds['D50_D60']) or \
-                   (mod_size > 60 and aln_score < thresholds['D60plus']) or \
-                   (mod_size > 90 and aln_score < thresholds['D90plus']):
-                    return False
-            elif mod_type == 'I':
-                if (0 < mod_size <= 20 and aln_score < thresholds['I1_I20']) or \
-                   (20 < mod_size <= 35 and aln_score < thresholds['I20_I35']) or \
-                   (35 < mod_size <= 50 and aln_score < thresholds['I35_I50']) or \
-                   (mod_size > 50 and aln_score < thresholds['I50plus']):
-                    return False
-            elif mod_type == 'S':
-                if aln_score < 50:
-                    return False"""
             return True
         except (IndexError, ValueError):
             return True
@@ -418,8 +357,6 @@ ROTable = ROTable[ROTable.apply(check_reads, axis=1)]
 ROTable = ROTable[~((ROTable['UMI_RepairOutcome'] == 'NHEJ') & (ROTable['mods'].isna() | (ROTable['mods'] == '')))]
 
 ROTable.to_csv('RepairOutcomeTable.csv', index=False)
-
-
 
 
 ROTable.groupby('bc')['UMI_RepairOutcome'].value_counts().to_csv('UMIRepairOutcomes.csv')
@@ -663,66 +600,6 @@ for key, value in UMImod.items():
     else:
         print("This UMI is in line 445", value)
 
-"""
-#keep only mods with UMI_count > 0 #keep only mods with read count percentage of total >30%
-for bc, value in Cell_mod.items():
-    if 'mods' in value:
-        mods = value['mods']
-        # Create a list of keys to be removed 
-        mod_rc_threshold = 0.3 * Cell_totalrc[bc]
-        keys_to_remove = [key for key in mods if mods[key]['rc'] < mod_rc_threshold]
-        # Remove the keys from the 'Cell_mods' dictionary
-        for key_to_remove in keys_to_remove:
-            del mods[key_to_remove]
-#remove all cells with no mods left
-Cell_mod = {key: value for key, value in Cell_mod.items() if value['mods']}
-            
-#keep only hdrbc with UMI_count > 0 and read count percentage of total > 30%
-for bc, value in Cell_hdrbc.items():
-    if 'hdrbcs' in value:
-        hdrbc = value['hdrbcs']
-        hdrbc_rc_threshold = 0.3 * Cell_totalrc[bc]
-        # Create a list of keys to be removed
-        keys_to_remove = [key for key in hdrbc if hdrbc[key]['rc'] < hdrbc_rc_threshold]
-        # Remove the keys from the 'Cell_mods' dictionary
-        for key_to_remove in keys_to_remove:
-            del hdrbc[key_to_remove]
-#remove all cells with no hdrbcs left
-Cell_hdrbc = {key: value for key, value in Cell_hdrbc.items() if value['hdrbcs']}
-"""
-
-
-#only use if necessary (data should be clean enough to only contain true modifications)
-#keep only mods with UMI count percentage >5% of total UMIs
-"""for bc, value in Cell_mod.items():
-    if 'mods' in value:
-        mods = value['mods']
-        # Create a list of keys to be removed 
-        mod_uc_threshold = 0.05 * Cell_totalumi[bc]
-        keys_to_remove = [key for key in mods if mods[key]['umi_count'] < mod_uc_threshold]
-        # Remove the keys from the 'Cell_mods' dictionary
-        for key_to_remove in keys_to_remove:
-            print(f"Removing mod: {key_to_remove}, Value: {mods[key_to_remove]} from bc {bc}")
-            del mods[key_to_remove]
-#remove all cells with no mods left
-Cell_mod = {key: value for key, value in Cell_mod.items() if value['mods']}"""
-  
-"""
-#optional (used for parse analysis to avoid unspecific HDR UMIs)
-#keep only hdrbc with UMI_count > 1 and UMI_count percentage of total > 10%
-for bc, value in Cell_hdrbc.items():
-    if 'hdrbcs' in value:
-        hdrbc = value['hdrbcs']
-        hdrbc_uc_threshold = 0.1 * Cell_totalumi[bc]
-        # Create a list of keys to be removed
-        keys_to_remove = [key for key in hdrbc if (hdrbc[key]['umi_count'] < hdrbc_uc_threshold or hdrbc[key]['umi_count'] <= 1)]
-        #keys_to_remove = [key for key in hdrbc if hdrbc[key]['rc'] < hdrbc_rc_threshold]
-        # Remove the keys from the 'Cell_mods' dictionary
-        for key_to_remove in keys_to_remove:
-            del hdrbc[key_to_remove]
-#remove all cells with no hdrbcs left
-Cell_hdrbc = {key: value for key, value in Cell_hdrbc.items() if value['hdrbcs']}
-"""
 
 #count UMIs per wt and rc per wt and add value
 Cell_wt = dict()

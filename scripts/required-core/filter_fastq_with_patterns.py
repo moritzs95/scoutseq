@@ -1,5 +1,7 @@
 #!/usr/bin/python
-"""Filter interleaved paired-end FASTQ records by sequence motifs in read 2."""
+"""
+Filter interleaved paired-end FASTQ records by sequence motifs in read 2 to remove e.g. pseudogene reads of off-target reads.
+"""
 
 import sys
 

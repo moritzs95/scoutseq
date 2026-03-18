@@ -1,5 +1,7 @@
 #!/usr/bin/python
-"""Remove CRISPResso output reads that match known unwanted sequence patterns."""
+"""
+Remove CRISPResso output reads from fastq output that match known unwanted sequence patterns (e.g. pseudogenes).
+"""
 
 import sys
 import gzip

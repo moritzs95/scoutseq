@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-"""Integrate translocation summaries into editing outcomes with minimal intermediates.
-
-This consolidates the logic that previously lived in multiple post-processing
-scripts into a single reporting step at the end of the pipeline.
+"""
+Integrate translocation summaries into editing outcomes. Keeps only the top 2 alleles and translocations above a certain threshold of read counts.
 """
 
 from __future__ import annotations
@@ -39,8 +37,8 @@ GROUPED_REPAIR_RENAMES = {
     "Translocation": "Inter-chromosomal SV",
 }
 
-LEFT_ANCHOR = "CTCCTCAC"  # PAM proximal
-RIGHT_ANCHOR = "AGTTGCCATG"  # PAM distal
+LEFT_ANCHOR = "CTCCTCAC"  # PAM proximal anchor
+RIGHT_ANCHOR = "AGTTGCCATG"  # PAM distal anchor
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,8 +61,7 @@ def get_max_index(columns: list[str], prefix: str) -> int:
 
 
 def add_true_percentages(df: pd.DataFrame) -> pd.DataFrame:
-    # Add allele-level percentages relative to the total read and UMI counts for
-    # each cell barcode row.
+    # Add allele-level percentages relative to the total read and UMI counts for each cell barcode row.
     max_alleles = get_max_index(list(df.columns), "Allele")
     if max_alleles == 0:
         return df
@@ -84,8 +81,7 @@ def add_true_percentages(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def top_alleles(df: pd.DataFrame, threshold: float = 10.0, top_n: int = 2) -> pd.DataFrame:
-    # Keep only the dominant allele calls per cell to simplify downstream
-    # reporting and translocation merging.
+    # Keep only the dominant allele calls per cell to simplify downstream reporting and translocation merging.
     max_alleles = get_max_index(list(df.columns), "Allele")
     metadata_cols = [
         column
@@ -275,8 +271,7 @@ def merge_alleles_and_translocations(
     allele_df: pd.DataFrame,
     translocation_df: pd.DataFrame | None,
 ) -> pd.DataFrame:
-    # Combine editing outcomes with remapped translocation summaries while
-    # keeping total counts consistent across both data sources.
+    # Combine editing outcomes with remapped translocation summaries while keeping total counts consistent across both data sources.
     if translocation_df is None or translocation_df.empty:
         merged = allele_df.copy()
         merged["location_count"] = 0

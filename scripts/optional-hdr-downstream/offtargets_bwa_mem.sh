@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Remap candidate off-target sequences back to the reference genome and
-# summarize surviving coordinates per cell barcode.
+# Remap candidate off-target sequences back to the reference genome and summarize surviving coordinates per cell barcode.
 
 set -euo pipefail
 

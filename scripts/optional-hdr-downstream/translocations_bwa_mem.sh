@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Remap candidate translocation reads back to the reference genome and summarize
-# surviving coordinates per cell barcode.
+# Remap candidate translocation reads back to the reference genome and summarize surviving coordinates per cell barcode.
 
 set -euo pipefail
 
