@@ -1,53 +1,23 @@
 # scOUTseq Pipeline
 
-Portable workspace version of the `scOUTseq` analysis pipeline for processing 10X and PARSE-based scOUTseq runs.
-
-This repository contains:
-
-- a cleaned-up shell pipeline entrypoint
-- helper scripts grouped by function
-- an example config
-- example FASTQ inputs
-- a portable genome directory convention
-
-## Repository Layout
-
-```text
-.
-├── .gitignore
-├── README.md
-├── example.config
-├── hdr_filter_example.ini
-├── requirements.txt
-├── data/
-│   ├── scOUT_seq_example_R1.fastq.gz
-│   └── scOUT_seq_example_R2.fastq.gz
-├── genome/
-│   └── <reference fasta and bwa index files>
-└── scripts/
-    ├── required-core/
-    ├── optional-parse/
-    └── optional-hdr-downstream/
-```
+Analysis pipeline for processing 10X and Parse-based scOUT-seq data to map Cas9 editing outcomes at single cell and single nucleotide resolution.
 
 ## What The Pipeline Does
 
 At a high level, the pipeline:
 
-1. loads a run config
-2. links the input FASTQs into a sample output directory
-3. optionally filters reads by sequence patterns
-4. runs `umi_tools whitelist` and `umi_tools extract`
-5. optionally annotates PARSE barcodes
-6. optionally separates HDR-barcode-containing reads
-7. runs `CRISPResso`
-8. optionally performs downstream HDR/off-target/translocation/editing outcome analysis
+1. Salvages and assigns cell barcodes and UMIs.
+2. Optionally filters reads by sequence patterns.
+3. Optionally assigns HDR-barcode-containing reads.
+4. Uses CRISPResso to align reads against target to assign editing outcomes and categorizes them at several levels of granularity.
+5. Optionally performs downstream HDR/large deletion/translocation/editing outcome analysis.
+
 
 ## Entry Point
 
 The main entrypoint is:
 
-- [scripts/required-core/scOUT_pipeline.sh](/Users/moritzschlapansky/Documents/Playground/scripts/required-core/scOUT_pipeline.sh)
+- [scripts/required-core/scOUT_pipeline.sh]
 
 Run it from the repository root with:
 
@@ -85,7 +55,7 @@ Install the Python dependencies with:
 pip install -r requirements.txt
 ```
 
-The repository-level [requirements.txt](/Users/moritzschlapansky/Documents/Playground/requirements.txt) also documents the required command-line tools as comments.
+The requirements text file [requirements.txt] also documents the required command-line tools as comments.
 
 ## Conda Environments
 
@@ -126,10 +96,11 @@ If you are using PARSE mode or HDR downstream analysis, more files are needed as
 
 ## Genome Files
 
-The pipeline now assumes genome files live under:
+The pipeline now assumes genome files (e.g. hg38 or mm10) live under:
 
-- [genome/](/Users/moritzschlapansky/Documents/Playground/genome)
+- [genome/]
 
+The genome files are not included in the pipeline, so you will have to download and index them yourself.
 The helper scripts look for common filenames such as:
 
 - `hg38.fa`
@@ -147,15 +118,17 @@ bwa index ./genome/hg38.fa
 samtools faidx ./genome/hg38.fa
 ```
 
+When using AAV for editing, the pipeline can also check against the AAV genome (e.g. to check for AAV integrations). Therefore, include also your indexed AAV genome.
+
 ## Configuration
 
 An example config is provided at:
 
-- [example.config](/Users/moritzschlapansky/Documents/Playground/example.config)
+- [example.config]
 
 Optional HDR barcode settings live in:
 
-- [hdr_filter_example.ini](/Users/moritzschlapansky/Documents/Playground/hdr_filter_example.ini)
+- [hdr_filter_example.ini]
 
 Paths in the config may be:
 
@@ -172,7 +145,7 @@ Important config variables:
 - `TARGET`, `AMPLICONSEQ`, `GUIDE`, `CRISPRESSOWINDOW`: CRISPResso settings
 - `SEQFILTER`: optional pre-filter pattern file
 - `FILTERHDRREADSCONFIG`: enables HDR barcode extraction when set
-- `CBCPATH`: metadata directory for PARSE or downstream cell barcode annotation
+- `CBCPATH`: metadata directory for Parse or downstream cell barcode annotation (to match with transcriptome data)
 - `GENOME_DIR`: genome directory, defaults to `./genome`
 
 ## Script Groups
@@ -191,7 +164,7 @@ Core scripts needed for routine runs:
 
 See:
 
-- [scripts/required-core/](/Users/moritzschlapansky/Documents/Playground/scripts/required-core)
+- [scripts/required-core/]
 
 ### `optional-parse`
 
@@ -204,7 +177,7 @@ Only needed for `LIBTYPE="PARSE"`:
 
 See:
 
-- [scripts/optional-parse/](/Users/moritzschlapansky/Documents/Playground/scripts/optional-parse)
+- [scripts/optional-parse/]
 
 ### `optional-hdr-downstream`
 
@@ -218,7 +191,7 @@ Only needed when HDR barcode filtering and downstream remapping are enabled:
 
 See:
 
-- [scripts/optional-hdr-downstream/](/Users/moritzschlapansky/Documents/Playground/scripts/optional-hdr-downstream)
+- [scripts/optional-hdr-downstream/]
 
 ## Typical Run Modes
 
@@ -253,7 +226,7 @@ This mode uses scripts from:
 - `required-core`
 - `optional-hdr-downstream`
 
-### 3. Full PARSE run
+### 3. Full Parse run
 
 Use:
 
@@ -318,26 +291,12 @@ Optional downstream analysis may also create:
 - off-target tables
 - `editing_outcomes/`
 
-Within `editing_outcomes/`, the pipeline can also generate:
+Within `editing_outcomes/`, the pipeline can also generate among other file:
 
 - `EditingOutcomeFrequencies.csv`
-- `EditingOutcomesWithTranslocations.csv`
 - `FilteredEditingOutcomesWithTranslocations.csv`
 
-`EditingOutcomesWithTranslocations.csv` is the merged table of top editing outcomes plus translocation summaries.
-
-`FilteredEditingOutcomesWithTranslocations.csv` is the downstream reporting table. It also includes:
-
-- `GroupedRepairOutcome_1`
-- `RepairClass_1`
-- `GroupedRepairOutcome_2`
-- `RepairClass_2`
-
-`EditingOutcomeFrequencies.csv` is a tidy frequency table with these outcome families:
-
-- `RepairOutcome`
-- `GroupedRepairOutcome`
-- `RepairClass`
+I included an example of the different editing categories as a picture under [outcome_categories.pdf].
 
 ## Example Test Run
 
@@ -349,8 +308,8 @@ bash ./scripts/required-core/scOUT_pipeline.sh ./example.config
 
 Before running, make sure:
 
-- the FASTQs exist in [data/](/Users/moritzschlapansky/Documents/Playground/data)
-- a reference FASTA exists in [genome/](/Users/moritzschlapansky/Documents/Playground/genome)
+- the FASTQs exist in [data/]
+- a reference FASTA exists in [genome/]
 - the reference has BWA index files
 - the required tools are installed
 
@@ -361,32 +320,11 @@ FILTERHDRREADSCONFIG=""
 CBCPATH=""
 ```
 
-## Common Errors
-
-### `fail to locate the index files`
-
-This means `bwa` found the FASTA but not the corresponding BWA index files.
-
-Fix by indexing the FASTA:
-
-```bash
-bwa index ./genome/hg38.fa
-```
-
-### Missing conda environment
-
-The pipeline prints a message and continues, but the required binaries still need to be available in the current environment.
-
-### Missing metadata directory
-
-If `CBCPATH` is set for PARSE or downstream annotation, the referenced directory must exist and contain the expected metadata CSV files.
-
 ## Notes
 
 - The pipeline does not bundle genome FASTA files.
 - The example FASTQs are included for testing, but not all downstream metadata required for a full production-style run is bundled here.
 - Some downstream helper scripts are still domain-specific and expect particular input table formats produced by upstream steps.
-- Runtime outputs are ignored by git via [.gitignore](/Users/moritzschlapansky/Documents/Playground/.gitignore).
 
 ## License
 
