@@ -25,9 +25,18 @@ GROUPED_REPAIR_RENAMES = {
     "IncorrectHDR": "Imperfect HDR",
     "Duplication-Insertion": "Duplication-insertion",
     "Deletion + Insertion": "Deletion + insertion",
+    "PAMdistalNHEJDeletion": "PAM-distal NHEJ deletion",
+    "PAMproximalNHEJDeletion": "PAM-proximal NHEJ deletion",
+    "BidirectionalNHEJDeletion": "Bidirectional NHEJ deletion",
+    "PAMdistalMMEJDeletion": "PAM-distal MMEJ deletion",
+    "PAMproximalMMEJDeletion": "PAM-proximal MMEJ deletion",
+    "BidirectionalMMEJDeletion": "Bidirectional MMEJ deletion",
     "LargeDeletion": "Intra-chromosomal SV",
     "Translocation": "Inter-chromosomal SV",
 }
+
+LEFT_ANCHOR = "CTCCTCAC"  # PAM proximal
+RIGHT_ANCHOR = "AGTTGCCATG"  # PAM distal
 
 
 def parse_args() -> argparse.Namespace:
@@ -344,11 +353,37 @@ def normalize_outcomes(df: pd.DataFrame, target_chromosome: str) -> pd.DataFrame
     return df.apply(assign_row, axis=1)
 
 
-def group_repair_outcome(outcome: object) -> object:
+def assign_deletion_group(sequence: object, outcome: object) -> object:
+    if pd.isna(sequence) or pd.isna(outcome) or outcome == "":
+        return outcome
+
+    sequence = str(sequence)
+    outcome = str(outcome)
+
+    if "NHEJ" in outcome:
+        if LEFT_ANCHOR not in sequence and RIGHT_ANCHOR not in sequence:
+            return "BidirectionalNHEJDeletion"
+        if LEFT_ANCHOR not in sequence:
+            return "PAMproximalNHEJDeletion"
+        if RIGHT_ANCHOR not in sequence:
+            return "PAMdistalNHEJDeletion"
+    if "MMEJ" in outcome:
+        if LEFT_ANCHOR not in sequence and RIGHT_ANCHOR not in sequence:
+            return "BidirectionalMMEJDeletion"
+        if LEFT_ANCHOR not in sequence:
+            return "PAMproximalMMEJDeletion"
+        if RIGHT_ANCHOR not in sequence:
+            return "PAMdistalMMEJDeletion"
+    return outcome
+
+
+def group_repair_outcome(outcome: object, sequence: object) -> object:
     if pd.isna(outcome):
         return outcome
 
     outcome_str = str(outcome)
+    if "NHEJ" in outcome_str or "MMEJ" in outcome_str:
+        outcome_str = str(assign_deletion_group(sequence, outcome_str))
     grouped = ALLELE_REPAIR_RENAMES.get(outcome_str, outcome_str)
     return GROUPED_REPAIR_RENAMES.get(grouped, grouped)
 
@@ -395,7 +430,10 @@ def add_grouped_and_class_columns(df: pd.DataFrame) -> pd.DataFrame:
         grouped_col = f"GroupedRepairOutcome_{slot}"
         class_col = f"RepairClass_{slot}"
         if repair_col in df.columns:
-            df[grouped_col] = df[repair_col].apply(group_repair_outcome)
+            df[grouped_col] = df.apply(
+                lambda row: group_repair_outcome(row[repair_col], row.get(f"Sequence_{slot}")),
+                axis=1,
+            )
             df[class_col] = df[grouped_col].apply(classify_repair_outcome)
 
     ordered_columns = []
