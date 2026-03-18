@@ -55,7 +55,7 @@ Install the Python dependencies with:
 pip install -r requirements.txt
 ```
 
-The requirements text file [requirements.txt] also documents the required command-line tools as comments.
+The requirements text file [`requirements.txt`](./requirements.txt) also documents the required command-line tools as comments.
 
 ## Conda Environments
 
@@ -98,7 +98,7 @@ If you are using PARSE mode or HDR downstream analysis, more files are needed as
 
 The pipeline now assumes genome files (e.g. hg38 or mm10) live under:
 
-- [`genome/`](./genome/)
+- `genome/`
 
 The genome files are not included in the pipeline, so you will have to download and index them yourself.
 The helper scripts look for common filenames such as:
@@ -124,11 +124,11 @@ When using AAV for editing, the pipeline can also check against the AAV genome (
 
 An example config is provided at:
 
-- [example.config]
+- [`example.config`](./example.config)
 
 Optional HDR barcode settings live in:
 
-- [hdr_filter_example.ini]
+- [`hdr_filter_example.ini`](./hdr_filter_example.ini)
 
 Paths in the config may be:
 
@@ -164,7 +164,7 @@ Core scripts needed for routine runs:
 
 See:
 
-- [scripts/required-core/]
+- [`scripts/required-core/`](./scripts/required-core/)
 
 ### `optional-parse`
 
@@ -177,7 +177,7 @@ Only needed for `LIBTYPE="PARSE"`:
 
 See:
 
-- [scripts/optional-parse/]
+- [`scripts/optional-parse/`](./scripts/optional-parse/)
 
 ### `optional-hdr-downstream`
 
@@ -191,7 +191,7 @@ Only needed when HDR barcode filtering and downstream remapping are enabled:
 
 See:
 
-- [scripts/optional-hdr-downstream/]
+- [`scripts/optional-hdr-downstream/`](./scripts/optional-hdr-downstream/)
 
 ## Typical Run Modes
 
@@ -296,7 +296,7 @@ Within `editing_outcomes/`, the pipeline can also generate among other file:
 - `EditingOutcomeFrequencies.csv`
 - `FilteredEditingOutcomesWithTranslocations.csv`
 
-I included an example of the different editing categories as a picture under [outcome_categories.pdf].
+I included an example of the different editing categories as a picture under [`outcome_categories.pdf`](./outcome_categories).
 
 ## Example Test Run
 
