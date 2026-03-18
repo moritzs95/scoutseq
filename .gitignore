@@ -1,0 +1,21 @@
+# Data (CRITICAL)
+genome/
+HSPC/
+
+# Bioinformatics files
+*.fastq
+*.fastq.gz
+*.bam
+*.sam
+*.vcf
+*.gz
+!data/scOUT_seq_example_R1.fastq.gz
+!data/scOUT_seq_example_R2.fastq.gz
+
+
+# Python
+__pycache__/
+*.pyc
+
+# Conda
+env/
