@@ -17,7 +17,7 @@ At a high level, the pipeline:
 
 The main entrypoint is:
 
-- [scripts/required-core/scOUT_pipeline.sh]
+- [`scripts/required-core/scOUT_pipeline.sh`](./scripts/required-core/scOUT_pipeline.sh)
 
 Run it from the repository root with:
 
