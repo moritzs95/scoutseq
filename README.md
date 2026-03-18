@@ -98,7 +98,7 @@ If you are using PARSE mode or HDR downstream analysis, more files are needed as
 
 The pipeline now assumes genome files (e.g. hg38 or mm10) live under:
 
-- [genome/]
+- [`genome/`](./genome/)
 
 The genome files are not included in the pipeline, so you will have to download and index them yourself.
 The helper scripts look for common filenames such as:
