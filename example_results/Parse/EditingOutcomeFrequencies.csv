@@ -1,0 +1,26 @@
+OutcomeType,Outcome,Frequency,Percentage
+RepairOutcome,NHEJ-Deletion,52,26.0
+RepairOutcome,MMEJ-Deletion,50,25.0
+RepairOutcome,Duplication-Insertion,25,12.5
+RepairOutcome,Insertion,20,10.0
+RepairOutcome,WT,17,8.5
+RepairOutcome,ITRInsertion,17,8.5
+RepairOutcome,HDR,11,5.5
+RepairOutcome,ITRInsertion+Substitution,5,2.5
+RepairOutcome,IncorrectHDR,2,1.0
+RepairOutcome,NHEJ-Deletion+Substitution,1,0.5
+GroupedRepairOutcome,Bidirectional NHEJ deletion,53,26.5
+GroupedRepairOutcome,Bidirectional MMEJ deletion,50,25.0
+GroupedRepairOutcome,Duplication-insertion,25,12.5
+GroupedRepairOutcome,Insertion,20,10.0
+GroupedRepairOutcome,WT,17,8.5
+GroupedRepairOutcome,ITRInsertion,17,8.5
+GroupedRepairOutcome,HDR,11,5.5
+GroupedRepairOutcome,ITRInsertion+Substitution,5,2.5
+GroupedRepairOutcome,Imperfect HDR,2,1.0
+RepairClass,NHEJ-Deletion,53,26.5
+RepairClass,MMEJ-Deletion,50,25.0
+RepairClass,Insertion,45,22.5
+RepairClass,ITRInsertion,22,11.0
+RepairClass,WT,17,8.5
+RepairClass,HDR,13,6.5

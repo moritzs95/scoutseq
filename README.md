@@ -1,6 +1,6 @@
 # scOUTseq Pipeline
 
-Analysis pipeline for processing 10X and Parse-based scOUT-seq data to map Cas9 editing outcomes at single cell and single nucleotide resolution.
+Analysis pipeline for processing 10X-, PARSE-, and BD Rhapsody-based scOUT-seq data to map Cas9 editing outcomes at single cell and single nucleotide resolution.
 
 ## What The Pipeline Does
 
@@ -122,13 +122,17 @@ When using AAV for editing, the pipeline can also check against the AAV genome (
 
 ## Configuration
 
-An example config is provided at:
+An example config for each technology (10X, Parse and BDR) is provided at:
 
-- [`example.config`](./example.config)
+- [`example_10X.config`](./example_10X.config)
+- [`example_BDR.config`](./example_BDR.config)
+- [`example_parse.config`](./example_parse.config)
 
 Optional HDR barcode settings live in:
 
-- [`hdr_filter_example.ini`](./hdr_filter_example.ini)
+- [`10X_hdr_filter_example.ini`](./10X_hdr_filter_example.ini)
+- [`bdr_hdr_filter_example.ini`](./bdr_hdr_filter_example.ini)
+- [`parse_hdr_filter_example.ini`](./parse_hdr_filter_example.ini)
 
 Paths in the config may be:
 
@@ -139,9 +143,12 @@ Important config variables:
 
 - `R1`, `R2`: input FASTQ files
 - `SAMPLENAME`: output folder name
-- `LIBTYPE`: `10X` or `PARSE`
+- `LIBTYPE`: `10X`, `PARSE`, or `BDR`
+- `PARSEKIT`: optional PARSE barcode mode switch (for example `mini`)
 - `EXPECTEDCELLS` or `SETCELLNUMBER`: whitelist behavior
-- `BCPATTERN`: barcode pattern for 10X mode
+- `BCPATTERN`: barcode pattern for 10X mode; PARSE uses a built-in regex; BDR can use the built-in BD Rhapsody regex when left empty
+- `EXTRACTMETHOD`: optional override for BDR barcode extraction
+- `BDR_DIR`: directory containing BD Rhapsody helper resources such as [`BD_CLS1.txt`](./BDR_integration/BD_CLS1.txt), [`BD_CLS2.txt`](./BDR_integration/BD_CLS2.txt), [`BD_CLS3.txt`](./BDR_integration/BD_CLS3.txt), and [`BDR_Sample_Tag_Calls.csv`](./BDR_integration/BDR_Sample_Tag_Calls.csv)
 - `TARGET`, `AMPLICONSEQ`, `GUIDE`, `CRISPRESSOWINDOW`: CRISPResso settings
 - `SEQFILTER`: optional pre-filter pattern file
 - `FILTERHDRREADSCONFIG`: enables HDR barcode extraction when set
@@ -187,7 +194,7 @@ Only needed when HDR barcode filtering and downstream remapping are enabled:
 - CRISPResso FASTQ-to-table conversion
 - off-target remapping
 - translocation remapping
-- 10X downstream extractors
+- shared 10X/BDR downstream extractors
 
 See:
 
@@ -217,7 +224,7 @@ bash ./scripts/required-core/scOUT_pipeline.sh ./example.config
 Use:
 
 - `LIBTYPE="10X"`
-- `FILTERHDRREADSCONFIG="./hdr_filter_example.ini"` or another real HDR config
+- `FILTERHDRREADSCONFIG="./10X_hdr_filter_example.ini"` or another real HDR config
 - valid `CBCPATH`
 - valid genome FASTA and BWA index files
 
@@ -234,11 +241,43 @@ Use:
 - valid `CBCPATH`
 - optional `PARSEKIT="mini"` when appropriate
 
+PARSE barcode handling is separate from 10X and BDR:
+
+- the pipeline uses a built-in PARSE extraction regex
+- [`scripts/optional-parse/parse_lib_fastq_bc-to-bcID.py`](./scripts/optional-parse/parse_lib_fastq_bc-to-bcID.py) rewrites PARSE barcode segments into the barcode IDs expected downstream
+- the PARSE `editing_outcomes` path expects PARSE-style metadata, including `cbcs_allsamples_filtered.csv`
+
+For the full PARSE downstream, the metadata directory should normally contain:
+
+- `cbcs_allsamples_filtered.csv`
+- `cell_metadata_unfiltered.csv`
+
 This mode uses scripts from:
 
 - `required-core`
 - `optional-parse`
 - `optional-hdr-downstream` if HDR downstream analysis is enabled
+
+### 4. Full BDR run
+
+Use:
+
+- `LIBTYPE="BDR"`
+- valid `CBCPATH`, typically [`cell_metadata_BDR/`](./cell_metadata_BDR/)
+- valid `BDR_DIR`, typically [`./BDR_helpers/`](./BDR_helpers/)
+- use `BCPATTERN=""` to use the built-in BD Rhapsody regex
+
+BDR barcode handling is separate from 10X and PARSE:
+
+- `umi_tools` still performs whitelist/extract, but with the BD Rhapsody regex
+- raw BD barcode strings are converted downstream into numeric `Cell_Index` values using the BD CLS lookup tables
+- final BDR outputs retain both `Cell_Index` and `Cell_Barcode`
+- BDR `editing_outcomes` outputs also preserve `Sample_Tag` and `Sample_Name`
+
+This mode uses scripts from:
+
+- `required-core`
+- `optional-hdr-downstream`
 
 ## Logging
 
@@ -296,6 +335,13 @@ Within `editing_outcomes/`, the pipeline can also generate among other file:
 - `EditingOutcomeFrequencies.csv`
 - `FilteredEditingOutcomesWithTranslocations.csv`
 
+For BDR runs, the final integrated editing outcome tables also retain:
+
+- `Cell_Index`
+- `Cell_Barcode`
+- `Sample_Tag`
+- `Sample_Name`
+
 I included an example of the different editing categories as a picture under [`outcome_categories.pdf`](./outcome_categories).
 
 ## Example Test Run
@@ -319,6 +365,12 @@ If you only want a lightweight test, disable HDR downstream analysis in the conf
 FILTERHDRREADSCONFIG=""
 CBCPATH=""
 ```
+
+BDR example files are also included:
+
+- [`example_BDR.config`](./example_BDR.config)
+- [`bdr_hdr_filter_example.ini`](./bdr_hdr_filter_example.ini)
+- downsampled raw example FASTQs under [`./data/`](./data/)
 
 ## Notes
 

@@ -1,0 +1,21 @@
+OutcomeType,Outcome,Frequency,Percentage
+RepairOutcome,NHEJ-Deletion,98,46.22641509433962
+RepairOutcome,WT,85,40.09433962264151
+RepairOutcome,Duplication-Insertion,19,8.962264150943396
+RepairOutcome,MMEJ-Deletion,4,1.8867924528301887
+RepairOutcome,Insertion,4,1.8867924528301887
+RepairOutcome,IncompleteHDR-1,1,0.4716981132075472
+RepairOutcome,IncompleteHDR-4,1,0.4716981132075472
+GroupedRepairOutcome,PAM-distal NHEJ deletion,98,46.22641509433962
+GroupedRepairOutcome,WT,85,40.09433962264151
+GroupedRepairOutcome,Duplication-insertion,19,8.962264150943396
+GroupedRepairOutcome,Insertion,4,1.8867924528301887
+GroupedRepairOutcome,PAM-distal MMEJ deletion,3,1.4150943396226416
+GroupedRepairOutcome,Bidirectional MMEJ deletion,1,0.4716981132075472
+GroupedRepairOutcome,IncompleteHDR-1,1,0.4716981132075472
+GroupedRepairOutcome,IncompleteHDR-4,1,0.4716981132075472
+RepairClass,NHEJ-Deletion,98,46.22641509433962
+RepairClass,WT,85,40.09433962264151
+RepairClass,Insertion,23,10.849056603773585
+RepairClass,MMEJ-Deletion,4,1.8867924528301887
+RepairClass,HDR,2,0.9433962264150944
