@@ -6,6 +6,11 @@ from collections import defaultdict
 import pandas as pd
 import sys
 import os
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "required-core"))
+
+from bdr_utils import normalize_bdr_barcode
 
 filename_hdr = str(sys.argv[1])
 len_hdrbc = int(sys.argv[2])
@@ -321,6 +326,8 @@ if os.path.exists(filename_hdr):
             name,bc,umi,hdrbc,hd = parts
         elif libtype == "BDR":
             name,bc,umi,hdrbc,hd = parts
+            raw_bc = bc
+            bc = normalize_bdr_barcode(bc)
         else:
             name,bc,bcSEQ,stype,umi,hdrbc,hd = parts
             bc = adjust_and_reformat_barcode(bc)
@@ -329,6 +336,8 @@ if os.path.exists(filename_hdr):
         raw_read_seq = lines[1]
         if not umi in bc_dict[bc]:
             bc_dict[bc][umi] = defaultdict(int)
+        if libtype == "BDR":
+            bc_dict[bc][umi]["raw_bc"] = raw_bc
         if len(hdrbc) == len_hdrbc:
             if not 'hdr_bc' in bc_dict[bc][umi]:
                 bc_dict[bc][umi]['hdr_bc'] = defaultdict(int)
@@ -388,8 +397,13 @@ if os.path.exists(filename_hdr):
 
     dfmain_hdr = pd.concat(frames, keys=bcs).reset_index()
 
-    # Rename the columns
-    dfmain_hdr.columns = ['bc', 'umi', 'hdr_bc']
+    # Rename the index columns that were introduced by concat/reset_index.
+    rename_map = {}
+    if "level_0" in dfmain_hdr.columns:
+        rename_map["level_0"] = "bc"
+    if "level_1" in dfmain_hdr.columns:
+        rename_map["level_1"] = "umi"
+    dfmain_hdr = dfmain_hdr.rename(columns=rename_map)
         
     # Save the result to CSV
     dfmain_hdr.to_csv('bc_umi_hdr_seq.csv', index=False)
@@ -453,6 +467,8 @@ for r in fq_indel:
         name, bc, umi = parts
     elif libtype == "BDR":
         name, bc, umi = parts
+        raw_bc = bc
+        bc = normalize_bdr_barcode(bc)
     else:
         name, bc, bcSEQ, stype, umi = parts
         bc = adjust_and_reformat_barcode(bc)
@@ -488,6 +504,9 @@ for r in fq_indel:
         # If CLASS is missing, skip further processing
         else:
             continue
+
+    if libtype == "BDR":
+        bc_dict[bc][umi]["raw_bc"] = raw_bc
     
     if 'CLASS' in crispresso:
         if crispresso['CLASS'] == 'Reference_UNMODIFIED' and float(crispresso['ALN_SCORES']) < 55:
@@ -865,7 +884,8 @@ for bc, umi_data in bc_dict.items():
             'Reference_UNMODIFIED': values['Reference_UNMODIFIED'],
             'mods': values['mods'],
             'wt_seq': values['wt_seq'],  # Include wild-type sequence counts
-            'avg_aln_score': values.get('avg_aln_score', 0)
+            'avg_aln_score': values.get('avg_aln_score', 0),
+            'raw_bc': values.get('raw_bc', ""),
         }
         rows.append(row)
 
@@ -966,6 +986,11 @@ if os.path.exists(filename_hdr):
 
     # Perform a full join (equivalent to outer join in pandas) on the 'bc' and 'umi' columns
     merged_df = pd.merge(dfmain_hdr, dfmain_mod, how='outer', on=['bc', 'umi'])
+    if 'raw_bc_x' in merged_df.columns or 'raw_bc_y' in merged_df.columns:
+        merged_df['raw_bc'] = merged_df.get('raw_bc_x', pd.Series(dtype=object)).combine_first(
+            merged_df.get('raw_bc_y', pd.Series(dtype=object))
+        )
+        merged_df = merged_df.drop(columns=[column for column in ['raw_bc_x', 'raw_bc_y'] if column in merged_df.columns])
 
     # Write the merged DataFrame to a CSV file
     merged_df.to_csv("Hdr_mods.csv", index=False, na_rep="")

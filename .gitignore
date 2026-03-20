@@ -1,6 +1,9 @@
 # Data (CRITICAL)
 genome/
 HSPC/
+10X_example/
+Parse_example/
+BDR_example/
 
 # Bioinformatics files
 *.fastq
@@ -9,8 +12,12 @@ HSPC/
 *.sam
 *.vcf
 *.gz
-!data/scOUT_seq_example_R1.fastq.gz
-!data/scOUT_seq_example_R2.fastq.gz
+!data/scOUT_10X_seq_example_R1.fastq.gz
+!data/scOUT_10X_seq_example_R2.fastq.gz
+!data/scOUT_Parse_seq_example_R1.fastq.gz
+!data/scOUT_Parse_seq_example_R2.fastq.gz
+!data/scOUT_BDR_seq_example_R1.fastq.gz
+!data/scOUT_BDR_seq_example_R2.fastq.gz
 
 
 # Python

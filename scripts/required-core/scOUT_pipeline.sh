@@ -11,6 +11,7 @@ ROOT_DIR="$(cd "${SCRIPTS_DIR}/.." && pwd)"
 GENOME_DIR_DEFAULT="${ROOT_DIR}/genome"
 PARSE_DIR="${SCRIPTS_DIR}/optional-parse"
 HDR_DIR="${SCRIPTS_DIR}/optional-hdr-downstream"
+BDR_DIR_DEFAULT="${ROOT_DIR}/BDR_integration"
 LOG_FILE=""
 
 timestamp() {
@@ -113,11 +114,16 @@ prepare_hdr_filter_config() {
 
 configure_barcode_extraction() {
   local parse_regex
+  local bdr_regex
   parse_regex='(?P<umi_1>[ACGT]{10})(?P<cell_3>[ACGT]{8})(?P<R2_linker>GTGGCCGATGTTTCGCATCGGCGTACGACT)(?P<cell_2>[ACGT]{8})(?P<R3_linker>ATCCACGTGCTTGAGACTGTGG)(?P<cell_1>[ACGT]{8})(?P<polyA>[ACGT]{4})(?P<polyA_2>[ACGT]{4})'
+  bdr_regex='(?P<cell_1>(?:(?:A|GT|TCA))*[ACGT]{9}GTGA[ACGT]{9}GACA[ACGT]{9})(?P<umi_1>[ACGT]{8})(?P<discard_1>.{8})'
 
   if [[ "${LIBTYPE}" == "PARSE" ]]; then
     EXTRACT_METHOD="regex"
     BC_PATTERN="${parse_regex}"
+  elif [[ "${LIBTYPE}" == "BDR" ]]; then
+    EXTRACT_METHOD="${EXTRACTMETHOD:-regex}"
+    BC_PATTERN="${BCPATTERN:-${bdr_regex}}"
   else
     require_var "BCPATTERN"
     EXTRACT_METHOD="string"
@@ -371,6 +377,7 @@ main() {
   CONFIG_DIR="$(dirname "${CONFIG_PATH}")"
 
   source "${CONFIG_PATH}"
+  export SCOUT_LIBTYPE="${LIBTYPE:-}"
 
   require_var "SAMPLENAME"
   require_var "R1"
@@ -381,6 +388,12 @@ main() {
   R2="$(resolve_path "${R2}")"
   CBCPATH="$(resolve_path "${CBCPATH:-}")"
   GENOME_DIR="$(resolve_path "${GENOME_DIR:-${GENOME_DIR_DEFAULT}}")"
+  BDR_DIR="$(resolve_path "${BDR_DIR:-${BDR_DIR_DEFAULT}}")"
+
+  if [[ "${LIBTYPE}" == "BDR" ]]; then
+    [[ -d "${BDR_DIR}" ]] || die "BDR resource directory '${BDR_DIR}' does not exist."
+    export SCOUT_BDR_DIR="${BDR_DIR}"
+  fi
 
   [[ -f "${R1}" ]] || die "R1 FASTQ '${R1}' does not exist."
   [[ -f "${R2}" ]] || die "R2 FASTQ '${R2}' does not exist."

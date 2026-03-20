@@ -23,6 +23,10 @@ import math
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "required-core"))
+
+from bdr_utils import load_bdr_sample_tags, normalize_bdr_barcode_series
+
 DRO_ALLOWED_FILES = {
     "AlleleFrequencies.xlsx",
     "AlleleFrequencies_sized.xlsx",
@@ -45,9 +49,18 @@ def cleanup_dro_outputs() -> None:
             path.unlink()
 
 
+def write_optional_plot(filename: str) -> None:
+    """Skip non-curated diagnostic plots instead of writing and deleting them later."""
+    if filename in DRO_ALLOWED_FILES:
+        plt.savefig(filename, format="png", dpi=300)
+    plt.close()
+
+
 target = sys.argv[1]
 read_length = int(sys.argv[2])
 cbc_path = sys.argv[3]
+libtype = os.environ.get("SCOUT_LIBTYPE", "10X").strip() or "10X"
+cbc_dir = Path(cbc_path)
 
 #define scOUT target (GAPDH_sg13_SNP, Son_sg4, B2m_sg1, GAPDH_sg13)
 if target not in ["GAPDH_sg13_SNP", "Son_sg4", "B2m_sg1", "GAPDH_sg13", "Pgk1_sg1", "Gpi1_sg90", "Gpi1_sg90_200"]:
@@ -220,16 +233,29 @@ print(f"Number of unique barcodes before filtering: {ROTable['bc'].nunique()}")
 def reformat_barcodes(df, col_name):
     def reformat(x):
         # Remove patterns like "-1", "-2", etc.
-        return re.sub(r'-\d+', '', x)
+        return re.sub(r'-\d+', '', str(x))
     
     # Apply the reformat function to the specified column
     df[col_name] = df[col_name].apply(reformat)
     return df  # Return the modified dataframe
 
 ROTable = reformat_barcodes(ROTable, 'bc')
+ROTable['bc'] = ROTable['bc'].astype(str)
+if libtype == "BDR":
+    ROTable['bc'] = normalize_bdr_barcode_series(ROTable['bc'])
 all_barcodes_before_filtering = set(ROTable['bc'].unique())
+raw_barcodes_by_cell_index = {}
+if libtype == "BDR" and "raw_bc" in ROTable.columns:
+    raw_barcodes_by_cell_index = (
+        ROTable.loc[ROTable["raw_bc"].notna() & (ROTable["raw_bc"].astype(str) != ""), ["bc", "raw_bc"]]
+        .drop_duplicates(subset=["bc"])
+        .set_index("bc")["raw_bc"]
+        .astype(str)
+        .to_dict()
+    )
 
-whitelist_df = pd.read_csv(f'{cbc_path}cbcs_filtered.csv', header=0, low_memory=False)
+whitelist_df = pd.read_csv(cbc_dir / "cbcs_filtered.csv", header=0, low_memory=False)
+whitelist_df['bc'] = whitelist_df['bc'].astype(str)
 whitelist = set(whitelist_df['bc'].tolist())
 
 barcodes_filtered = set(whitelist)
@@ -395,8 +421,7 @@ plt.hist(reads_per_UMI, bins=range(0, int(max(reads_per_UMI)) + 100, 100), edgec
 plt.xlabel('Reads per UMI')
 plt.ylabel('Frequency')
 plt.title('Histogram of Reads per UMI')
-plt.savefig('reads_per_UMI_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('reads_per_UMI_histogram.png')
 
 # Group the table by the 'bc' column and calculate the mean of the 'sum_cols' for each 'bc'
 meanrc_per_cell = ROTable.groupby('bc')['totalrc'].mean()
@@ -700,8 +725,7 @@ plt.hist(allele_dist, bins = range(0, int(max(allele_dist)) + 1, 1))
 plt.xlabel('Number of Alleles per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of Allele Numbers per Cell')
-plt.savefig('allele_count_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_count_histogram.png')
 
 # calculate number of alleles assigned (not including intermediates)
 allele_counts = {}
@@ -719,8 +743,7 @@ plt.hist(allele_counts.values(), bins = range(0, int(max(allele_counts.values())
 plt.xlabel('Number of Alleles per cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of number of Alleles')
-plt.savefig('allele_count_histogram_2.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_count_histogram_2.png')
 
 print("Allele numbers: ", Counter(allele_counts.values()))
 
@@ -731,8 +754,7 @@ plt.ylabel('Frequency')
 plt.title('Histogram of Read Percentage per Cell')
 plt.legend()
 plt.xlim(0, 100) # Set the x-axis limits
-plt.savefig('read_perc_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_histogram.png')
 
 
 #read percentage histogram - only NHEJ
@@ -740,24 +762,21 @@ plt.hist(mod_perc_list, bins=50)
 plt.xlabel('Percentage of NHEJ reads per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of NHEJ')
-plt.savefig('read_perc_NHEJ_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_NHEJ_histogram.png')
 
 #read percentage histogram - only wt
 plt.hist(wt_perc_list, bins=50)
 plt.xlabel('Percentage of WT reads per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of WT')
-plt.savefig('read_perc_WT_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_WT_histogram.png')
 
 #read percentage histogram - only hdr
 plt.hist(hdrbc_perc_list, bins=50)
 plt.xlabel('Percentage of HDR reads per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of HDR')
-plt.savefig('read_perc_HDR_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_HDR_histogram.png')
 
 #remove empty dictionaries from Cell_hdrbc_mod[bc]['alleles']
 Cell_hdrbc_mod = {bc: inner_dict for bc, inner_dict in Cell_hdrbc_mod.items() if inner_dict['alleles']}
@@ -776,12 +795,33 @@ for bc, bc_data in Cell_hdrbc_mod.items():
             Cell_hdrbc_mod[bc]['alleles'][allele]['rc_perc'] = mod_rc_perc
 
 # Read the cell metadata
-cell_metadata = pd.read_csv(f'{cbc_path}cell_metadata.csv', header=0, low_memory=False)
+cell_metadata = pd.read_csv(cbc_dir / "cell_metadata.csv", header=0, low_memory=False)
+cell_metadata['bc'] = cell_metadata['bc'].astype(str)
 cell_metadata.set_index('bc', inplace=True)
 
+sample_tag_metadata = pd.DataFrame(columns=["bc", "Sample_Tag", "Sample_Name"])
+if libtype == "BDR":
+    sample_tag_metadata = load_bdr_sample_tags()
+    if not sample_tag_metadata.empty:
+        sample_tag_metadata['bc'] = sample_tag_metadata['bc'].astype(str)
+        sample_tag_metadata.set_index('bc', inplace=True)
+
 #read unfiltered cell barcodes
-whitelist_df_unfiltered = pd.read_csv(f'{cbc_path}cbcs_unfiltered.csv', header=0, low_memory=False)
+whitelist_df_unfiltered = pd.read_csv(cbc_dir / "cbcs_unfiltered.csv", header=0, low_memory=False)
+whitelist_df_unfiltered['bc'] = whitelist_df_unfiltered['bc'].astype(str)
 whitelist_unfiltered = set(whitelist_df_unfiltered['bc'].tolist())
+
+
+def get_metadata_value(metadata_df, barcode, *column_names, default="Unknown"):
+    """Return the first matching metadata value for a barcode across allowed column names."""
+    if barcode not in metadata_df.index:
+        return default
+    for column_name in column_names:
+        if column_name in metadata_df.columns:
+            value = metadata_df.loc[barcode, column_name]
+            if pd.notna(value):
+                return value
+    return default
 
 
 
@@ -796,7 +836,10 @@ with open('ModSelection.csv', 'w', newline='') as f:
     writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
     
     # Write the header dynamically
-    dynamic_header = ["bc", "allele_count", "total_rc", "total_UMIcount"]
+    dynamic_header = ["bc"]
+    if libtype == "BDR":
+        dynamic_header.extend(["Cell_Index", "Cell_Barcode"])
+    dynamic_header.extend(["allele_count", "total_rc", "total_UMIcount"])
     max_alleles = max(len(Cell_hdrbc_mod[bc]['alleles']) for bc in Cell_hdrbc_mod)  # Get the maximum number of alleles
     
     # Add dynamic columns to the header for alleles
@@ -808,19 +851,26 @@ with open('ModSelection.csv', 'w', newline='') as f:
     
     # Add static columns to the header
     dynamic_header.extend(["Ploidy", "DetailedRepairOutcome", "Sample", "In_Whitelist", "In_Unfiltered_Whitelist", "Celltype"])
+    if not sample_tag_metadata.empty:
+        dynamic_header.extend(["Sample_Tag", "Sample_Name"])
     writer.writerow(dynamic_header)
     
     # Iterate over the data
     for bc, alleles in Cell_hdrbc_mod.items():
         allele_keys = sorted(Cell_hdrbc_mod[bc]['alleles'])
         allele_count = len(allele_keys)
-        sample = cell_metadata.loc[bc, 'sample'] if bc in cell_metadata.index else 'Unknown'
+        sample = get_metadata_value(cell_metadata, bc, 'sample', 'Sample')
         in_whitelist = bc in whitelist
         in_unfiltered_whitelist = bc in whitelist_unfiltered
-        celltype = cell_metadata.loc[bc, 'celltype'] if bc in cell_metadata.index else 'Unknown'
+        celltype = get_metadata_value(cell_metadata, bc, 'celltype', 'Celltype')
+        sample_tag = sample_tag_metadata.loc[bc, 'Sample_Tag'] if not sample_tag_metadata.empty and bc in sample_tag_metadata.index else 'Unknown'
+        sample_name = sample_tag_metadata.loc[bc, 'Sample_Name'] if not sample_tag_metadata.empty and bc in sample_tag_metadata.index else 'Unknown'
         
         # Gather the data for this row
-        row = [bc, allele_count]
+        row = [bc]
+        if libtype == "BDR":
+            row.extend([bc, raw_barcodes_by_cell_index.get(bc, "Unknown")])
+        row.append(allele_count)
         
         # Calculate total_rc by summing all rc values
         total_rc = sum(Cell_hdrbc_mod[bc]['alleles'][allele]['rc'] for allele in allele_keys)
@@ -866,6 +916,8 @@ with open('ModSelection.csv', 'w', newline='') as f:
         
         # Add remaining static columns
         row.extend([ploidy, detailed_repair_outcome, sample, in_whitelist, in_unfiltered_whitelist, celltype])
+        if not sample_tag_metadata.empty:
+            row.extend([sample_tag, sample_name])
         
         # Write the row to the CSV
         writer.writerow(row)
@@ -1532,8 +1584,7 @@ plt.bar(allele_freq.index, allele_freq.values, color='purple')
 plt.title('Combined Frequency of All Alleles')
 plt.xlabel('Allele')
 plt.ylabel('Frequency')
-plt.savefig('allele_frequencies.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_frequencies.png')
 
 # Categorization of deletions and insertions dynamically
 def categorize_deletions(deletion):
@@ -1614,8 +1665,7 @@ for i in range(1, max_alleles + 1):
         plt.xlabel('Outcome Categories')
         plt.ylabel('Counts')
 
-plt.savefig('allele_outcome_counts.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_outcome_counts.png')
 
 # Plotting combined outcome counts
 plt.figure(figsize=(200, 150), constrained_layout=True)
@@ -1623,8 +1673,7 @@ df_sized['Combined_Outcome'].value_counts().plot(kind='bar')
 plt.title('Combined Outcome Counts')
 plt.xlabel('Outcome Categories')
 plt.ylabel('Counts')
-plt.savefig('allele_combinedoutcome_counts.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_combinedoutcome_counts.png')
 
 # ---------------------------------------------------------------------------
 # Final cleanup: keep only the curated output set in the report directory

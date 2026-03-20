@@ -39,6 +39,16 @@ GROUPED_REPAIR_RENAMES = {
 
 LEFT_ANCHOR = "CTCCTCAC"  # PAM proximal anchor
 RIGHT_ANCHOR = "AGTTGCCATG"  # PAM distal anchor
+OPTIONAL_METADATA_COLUMNS = [
+    "Cell_Index",
+    "Cell_Barcode",
+    "Sample",
+    "Sample_Tag",
+    "Sample_Name",
+    "In_Whitelist",
+    "In_Unfiltered_Whitelist",
+    "Celltype",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -90,10 +100,7 @@ def top_alleles(df: pd.DataFrame, threshold: float = 10.0, top_n: int = 2) -> pd
             "allele_count",
             "total_rc",
             "total_UMIcount",
-            "Sample",
-            "In_Whitelist",
-            "In_Unfiltered_Whitelist",
-            "Celltype",
+            *OPTIONAL_METADATA_COLUMNS,
         ]
         if column in df.columns
     ]
@@ -184,6 +191,7 @@ def load_translocations(path: Path) -> pd.DataFrame | None:
     df = pd.read_csv(path).fillna(0)
     if df.empty or "bc" not in df.columns:
         return None
+    df["bc"] = df["bc"].astype(str)
     return df
 
 
@@ -207,10 +215,7 @@ def top_translocations(df: pd.DataFrame, threshold: float = 10.0, top_n: int = 2
             "bc",
             "total_rc",
             "total_UMIcount",
-            "Sample",
-            "In_Whitelist",
-            "In_Unfiltered_Whitelist",
-            "Celltype",
+            *OPTIONAL_METADATA_COLUMNS,
         ]
         if column in df.columns
     ]
@@ -264,7 +269,22 @@ def top_translocations(df: pd.DataFrame, threshold: float = 10.0, top_n: int = 2
 
         rows.append(output_row)
 
-    return pd.DataFrame(rows)
+    if rows:
+        return pd.DataFrame(rows)
+
+    empty_columns = [*metadata_cols, "location_count"]
+    for location_index in range(1, top_n + 1):
+        empty_columns.extend(
+            [
+                f"location_{location_index}",
+                f"umi_count_loc_{location_index}",
+                f"translocation_UMIcount_perc_{location_index}",
+                f"read_count_loc_{location_index}",
+                f"translocation_rc_perc_{location_index}",
+                f"read_seq_loc_{location_index}",
+            ]
+        )
+    return pd.DataFrame(columns=empty_columns)
 
 
 def merge_alleles_and_translocations(
@@ -295,6 +315,10 @@ def merge_alleles_and_translocations(
         )
     translocations_with_totals = add_translocation_percentages(translocations_with_totals)
     top_locations = top_translocations(translocations_with_totals)
+    if top_locations.empty or "bc" not in top_locations.columns:
+        merged = allele_df.copy()
+        merged["location_count"] = 0
+        return merged
 
     renamed_top_locations = top_locations.rename(
         columns={
@@ -431,6 +455,11 @@ def add_grouped_and_class_columns(df: pd.DataFrame) -> pd.DataFrame:
         df["RepairOutcome_2"] = df["RepairOutcome_2"].fillna(df["RepairOutcome_1"])
     if "Allele1" in df.columns and "Allele2" in df.columns:
         df["Allele2"] = df["Allele2"].fillna(df["Allele1"])
+    for prefix in ("Sequence_", "AlnRefSeq_", "HDist_HDRBC_"):
+        source_col = f"{prefix}1"
+        target_col = f"{prefix}2"
+        if source_col in df.columns and target_col in df.columns:
+            df[target_col] = df[target_col].fillna(df[source_col])
 
     for slot in (1, 2):
         repair_col = f"RepairOutcome_{slot}"
@@ -464,6 +493,7 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     allele_df = pd.read_excel(args.editing_outcomes)
+    allele_df["bc"] = allele_df["bc"].astype(str)
     allele_df = add_true_percentages(allele_df)
     top_allele_df = top_alleles(allele_df)
 

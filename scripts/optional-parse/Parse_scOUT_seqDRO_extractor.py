@@ -45,6 +45,13 @@ def cleanup_dro_outputs() -> None:
             path.unlink()
 
 
+def write_optional_plot(filename: str) -> None:
+    """Skip non-curated diagnostic plots instead of writing and deleting them later."""
+    if filename in DRO_ALLOWED_FILES:
+        plt.savefig(filename, format="png", dpi=300)
+    plt.close()
+
+
 target = sys.argv[1]
 read_length = int(sys.argv[2])
 cbc_path = sys.argv[3]
@@ -536,8 +543,7 @@ plt.hist(reads_per_UMI, bins=range(0, int(max(reads_per_UMI)) + 100, 100), edgec
 plt.xlabel('Reads per UMI')
 plt.ylabel('Frequency')
 plt.title('Histogram of Reads per UMI')
-plt.savefig('reads_per_UMI_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('reads_per_UMI_histogram.png')
 
 # Group the table by the 'bc' column and calculate the mean of the 'sum_cols' for each 'bc'
 meanrc_per_cell = ROTable.groupby('bc')['totalrc'].mean()
@@ -840,8 +846,7 @@ plt.hist(allele_dist, bins = range(0, int(max(allele_dist)) + 1, 1))
 plt.xlabel('Number of Alleles per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of Allele Numbers per Cell')
-plt.savefig('allele_count_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_count_histogram.png')
 
 # calculate number of alleles assigned (not including intermediates)
 allele_counts = {}
@@ -859,8 +864,7 @@ plt.hist(allele_counts.values(), bins = range(0, int(max(allele_counts.values())
 plt.xlabel('Number of Alleles per cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of number of Alleles')
-plt.savefig('allele_count_histogram_2.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_count_histogram_2.png')
 
 print("Allele numbers: ", Counter(allele_counts.values()))
 
@@ -871,8 +875,7 @@ plt.ylabel('Frequency')
 plt.title('Histogram of Read Percentage per Cell')
 plt.legend()
 plt.xlim(0, 100) # Set the x-axis limits
-plt.savefig('read_perc_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_histogram.png')
 
 
 #read percentage histogram - only NHEJ
@@ -880,24 +883,21 @@ plt.hist(mod_perc_list, bins=50)
 plt.xlabel('Percentage of NHEJ reads per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of NHEJ')
-plt.savefig('read_perc_NHEJ_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_NHEJ_histogram.png')
 
 #read percentage histogram - only wt
 plt.hist(wt_perc_list, bins=50)
 plt.xlabel('Percentage of WT reads per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of WT')
-plt.savefig('read_perc_WT_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_WT_histogram.png')
 
 #read percentage histogram - only hdr
 plt.hist(hdrbc_perc_list, bins=50)
 plt.xlabel('Percentage of HDR reads per Cell')
 plt.ylabel('Frequency')
 plt.title('Histogram of HDR')
-plt.savefig('read_perc_HDR_histogram.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('read_perc_HDR_histogram.png')
 
 #remove empty dictionaries from Cell_hdrbc_mod[bc]['alleles']
 Cell_hdrbc_mod = {bc: inner_dict for bc, inner_dict in Cell_hdrbc_mod.items() if inner_dict['alleles']}
@@ -1629,8 +1629,7 @@ plt.bar(allele_freq.index, allele_freq.values, color='purple')
 plt.title('Combined Frequency of All Alleles')
 plt.xlabel('Allele')
 plt.ylabel('Frequency')
-plt.savefig('allele_frequencies.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_frequencies.png')
 
 # Categorization of deletions and insertions dynamically
 def categorize_deletions(deletion):
@@ -1711,8 +1710,7 @@ for i in range(1, max_alleles + 1):
         plt.xlabel('Outcome Categories')
         plt.ylabel('Counts')
 
-plt.savefig('allele_outcome_counts.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_outcome_counts.png')
 
 # Plotting combined outcome counts
 plt.figure(figsize=(200, 150), constrained_layout=True)
@@ -1720,8 +1718,7 @@ df_sized['Combined_Outcome'].value_counts().plot(kind='bar')
 plt.title('Combined Outcome Counts')
 plt.xlabel('Outcome Categories')
 plt.ylabel('Counts')
-plt.savefig('allele_combinedoutcome_counts.png', format='png', dpi=300)
-plt.close()
+write_optional_plot('allele_combinedoutcome_counts.png')
 
 # ---------------------------------------------------------------------------
 # Final cleanup: keep only the curated output set in the report directory
