@@ -4,6 +4,7 @@ HSPC/
 10X_example/
 Parse_example/
 BDR_example/
+V1/
 
 # Bioinformatics files
 *.fastq

@@ -67,6 +67,121 @@ require_var() {
   fi
 }
 
+stage_index() {
+  case "$1" in
+    seq_filter) printf '1\n' ;;
+    barcode_extract) printf '2\n' ;;
+    parse_annotate) printf '3\n' ;;
+    split_hdr) printf '4\n' ;;
+    crispresso) printf '5\n' ;;
+    crispresso_filter) printf '6\n' ;;
+    hdr_postprocessing) printf '7\n' ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+validate_stage_name() {
+  local stage_name="$1"
+  local label="$2"
+
+  if ! stage_index "${stage_name}" >/dev/null 2>&1; then
+    die "Unknown ${label} stage '${stage_name}'. Valid stages: seq_filter, barcode_extract, parse_annotate, split_hdr, crispresso, crispresso_filter, hdr_postprocessing."
+  fi
+}
+
+should_run_stage() {
+  local stage_name="$1"
+  local stage_value
+  local start_value
+  local stop_value
+
+  stage_value="$(stage_index "${stage_name}")"
+  start_value="$(stage_index "${START_AT}")"
+
+  if (( stage_value < start_value )); then
+    return 1
+  fi
+
+  if [[ -n "${STOP_AFTER:-}" ]]; then
+    stop_value="$(stage_index "${STOP_AFTER}")"
+    if (( stage_value > stop_value )); then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+log_stage_decision() {
+  local stage_name="$1"
+
+  if should_run_stage "${stage_name}"; then
+    log "Running stage '${stage_name}'."
+    return 0
+  fi
+
+  log "Skipping stage '${stage_name}' because of START_AT='${START_AT}'${STOP_AFTER:+ and STOP_AFTER='${STOP_AFTER}'}."
+  return 1
+}
+
+initialize_pipeline_artifact_paths() {
+  CRISPRESSO_INPUT_R2="${EXTRACTED_R2}"
+  HDRBC_R2="${FASTQ_CORRECTED_DIR}/${SAMPLENAME}.extracted.HDRBC.R2.fastq.gz"
+  HDR_BC_STATS="${FASTQ_CORRECTED_DIR}/${SAMPLENAME}.extracted.BCstats.txt"
+
+  if [[ -n "${FILTERHDRREADSCONFIG:-}" ]]; then
+    if [[ "${HDRBCTYPE:-}" == "rINS" ]]; then
+      CRISPRESSO_INPUT_R2="${FASTQ_CORRECTED_DIR}/${SAMPLENAME}.extracted.noBC.R2.fastq.gz"
+    else
+      CRISPRESSO_INPUT_R2="${FASTQ_CORRECTED_DIR}/${SAMPLENAME}.extracted.noBC.R2.fastq.gz"
+    fi
+  fi
+}
+
+export_dro_target_config() {
+  export SCOUT_DRO_LABEL="${DROTARGET:-}"
+
+  require_var "DRO_LEFT_ANCHOR"
+  require_var "DRO_RIGHT_ANCHOR"
+  require_var "DRO_WT_AMPLICON"
+
+  export SCOUT_DRO_LEFT_ANCHOR="${DRO_LEFT_ANCHOR}"
+  export SCOUT_DRO_RIGHT_ANCHOR="${DRO_RIGHT_ANCHOR}"
+  export SCOUT_DRO_HDR_ANCHOR="${DRO_HDR_ANCHOR:-}"
+  export SCOUT_DRO_WT_AMPLICON="${DRO_WT_AMPLICON}"
+  export SCOUT_DRO_WT_AMPLICON_AFTER_CUTSITE="${DRO_WT_AMPLICON_AFTER_CUTSITE:-${DRO_WT_AMPLICON}}"
+  export SCOUT_DRO_HDRBC_LENGTH="${HDRBCLENGTH}"
+  require_var "DRO_GS_PRIMER"
+  require_var "DRO_CDNA_LENGTH"
+  require_var "DRO_REFERENCE_LENGTH"
+
+  export SCOUT_DRO_GS_PRIMER="${DRO_GS_PRIMER}"
+  export SCOUT_DRO_CDNA_LENGTH="${DRO_CDNA_LENGTH}"
+  export SCOUT_DRO_REFERENCE_LENGTH="${DRO_REFERENCE_LENGTH}"
+  export SCOUT_DRO_THRESHOLD_I90PLUS="${DRO_THRESHOLD_I90PLUS:-30}"
+  export SCOUT_DRO_THRESHOLD_D90PLUS="${DRO_THRESHOLD_D90PLUS:-30}"
+  export SCOUT_DRO_THRESHOLD_S1PLUS="${DRO_THRESHOLD_S1PLUS:-50}"
+
+  if [[ "${LIBTYPE}" == "PARSE" ]]; then
+    return 0
+  fi
+
+  export SCOUT_DRO_INSERTION_TYPE="${DRO_INSERTION_TYPE:-substitution}"
+
+  if [[ "${SCOUT_DRO_INSERTION_TYPE}" != "rINS" ]]; then
+    require_var "DRO_HDR_ANCHOR"
+  fi
+
+  if [[ "${SCOUT_DRO_INSERTION_TYPE}" == "cINS" ]]; then
+    require_var "DRO_CINS_HDRBC"
+    export SCOUT_DRO_CINS_HDRBC="${DRO_CINS_HDRBC}"
+  else
+    unset SCOUT_DRO_CINS_HDRBC || true
+  fi
+}
+
 resolve_path() {
   local value="$1"
 
@@ -287,12 +402,14 @@ run_hdr_postprocessing() {
   fi
 
   require_var "HDRBCLENGTH"
-  require_var "DROTARGET"
   require_var "DROREADLENGTH"
   require_var "CHRTARGET"
   require_var "STARTTARGET"
   require_var "ENDTARGET"
   require_var "SPECIES"
+  export_dro_target_config
+
+  [[ -f "${HDRBC_R2}" ]] || die "HDR barcode FASTQ '${HDRBC_R2}' does not exist. If resuming, make sure START_AT points after the HDR read split step only when its outputs already exist."
 
   python "${HDR_DIR}/crispresso_fastq_to_table.py" \
     "${HDRBC_R2}" \
@@ -398,7 +515,12 @@ main() {
   [[ -f "${R1}" ]] || die "R1 FASTQ '${R1}' does not exist."
   [[ -f "${R2}" ]] || die "R2 FASTQ '${R2}' does not exist."
 
-  RUN_DIR="${ROOT_DIR}/${SAMPLENAME}"
+  if [[ -n "${OUTPUTDIR:-}" ]]; then
+    RUN_DIR="$(resolve_path "${OUTPUTDIR}")"
+  else
+    RUN_DIR="${ROOT_DIR}/${SAMPLENAME}"
+  fi
+
   if [[ -d "${RUN_DIR}" ]] && [[ "${FORCE:-FALSE}" != "TRUE" ]]; then
     log "Output directory '${RUN_DIR}' already exists. Set FORCE=TRUE to reuse it."
     exit 0
@@ -414,6 +536,16 @@ main() {
   CLEAN_R2="${FASTQ_DIR}/${SAMPLENAME}.clean.R2.fastq.gz"
   EXTRACTED_R1="${FASTQ_CORRECTED_DIR}/${SAMPLENAME}.extracted.R1.fastq.gz"
   EXTRACTED_R2="${FASTQ_CORRECTED_DIR}/${SAMPLENAME}.extracted.R2.fastq.gz"
+  START_AT="${START_AT:-seq_filter}"
+  STOP_AFTER="${STOP_AFTER:-}"
+
+  validate_stage_name "${START_AT}" "START_AT"
+  if [[ -n "${STOP_AFTER}" ]]; then
+    validate_stage_name "${STOP_AFTER}" "STOP_AFTER"
+    if (( $(stage_index "${STOP_AFTER}") < $(stage_index "${START_AT}") )); then
+      die "STOP_AFTER='${STOP_AFTER}' cannot come before START_AT='${START_AT}'."
+    fi
+  fi
 
   setup_logging
 
@@ -423,23 +555,49 @@ main() {
   prepare_hdr_filter_config
 
   cd "${RUN_DIR}"
+  initialize_pipeline_artifact_paths
 
   load_conda
   activate_conda_if_available "scout"
-  run_seq_filter
-  configure_barcode_extraction
-  run_whitelist_and_extract
-  annotate_parse_barcodes_if_needed
-  split_hdr_reads_if_needed
+  if log_stage_decision "seq_filter"; then
+    run_seq_filter
+  fi
+
+  if log_stage_decision "barcode_extract"; then
+    [[ -f "${CLEAN_R1}" ]] || die "Required input '${CLEAN_R1}' is missing for stage 'barcode_extract'."
+    [[ -f "${CLEAN_R2}" ]] || die "Required input '${CLEAN_R2}' is missing for stage 'barcode_extract'."
+    configure_barcode_extraction
+    run_whitelist_and_extract
+  fi
+
+  if log_stage_decision "parse_annotate"; then
+    [[ -f "${EXTRACTED_R2}" ]] || die "Required input '${EXTRACTED_R2}' is missing for stage 'parse_annotate'."
+    annotate_parse_barcodes_if_needed
+  fi
+
+  if log_stage_decision "split_hdr"; then
+    [[ -f "${EXTRACTED_R2}" ]] || die "Required input '${EXTRACTED_R2}' is missing for stage 'split_hdr'."
+    split_hdr_reads_if_needed
+  fi
 
   load_conda
   activate_conda_if_available "crispresso2_env"
-  run_crispresso
+  if log_stage_decision "crispresso"; then
+    [[ -f "${CRISPRESSO_INPUT_R2}" ]] || die "Required input '${CRISPRESSO_INPUT_R2}' is missing for stage 'crispresso'."
+    run_crispresso
+  fi
   conda deactivate || true
 
-  enter_crispresso_output_dir
-  filter_crispresso_output_if_needed
-  run_hdr_postprocessing
+  if log_stage_decision "crispresso_filter"; then
+    enter_crispresso_output_dir
+    [[ -f "CRISPResso_output.fastq.gz" ]] || die "CRISPResso output FASTQ is missing in '${PWD}'. If resuming here, ensure the CRISPResso stage completed successfully."
+    filter_crispresso_output_if_needed
+  fi
+
+  if log_stage_decision "hdr_postprocessing"; then
+    enter_crispresso_output_dir
+    run_hdr_postprocessing
+  fi
 
   log "Pipeline finished for sample '${SAMPLENAME}'."
 }

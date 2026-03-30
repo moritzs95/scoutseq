@@ -23,6 +23,11 @@ import math
 import sys
 from pathlib import Path
 
+DRO_HELPER_DIR = Path(__file__).resolve().parents[1] / "required-core"
+sys.path.insert(0, str(DRO_HELPER_DIR))
+
+from dro_target_config import load_dro_config
+
 DRO_ALLOWED_FILES = {
     "AlleleFrequencies.xlsx",
     "AlleleFrequencies_sized.xlsx",
@@ -57,98 +62,15 @@ read_length = int(sys.argv[2])
 cbc_path = sys.argv[3]
 sub_library = ''
 
-
-#define scOUT target (GAPDH_sg13_SNP, Son_sg4, B2m_sg1, GAPDH_sg13)
-
-if target not in ["GAPDH_sg13_SNP", "Son_sg4", "B2m_sg1", "GAPDH_sg13"]:
-    sys.exit("Unrecognized scOUT target. Aborting.")
-elif target == "Son_sg4":
-        # Define the anchors - Son_sg4
-    left_anchor = 'CACCCAGC' #PAM proximal
-    right_anchor = 'CGCTATTTTG' #PAM distal
-    HDR_anchor = 'GGCATGC' #PAM proximal including PAM mutation if applicable
-    #Son_sg4 150 bp
-    WT_amplicon = 'GATAGACGTAAATAAAAATGCTGTAACCGACTTATCTAATAAAAATTGGCACCCAGCCGCTATTTTGTTGACTGAGGAAGTTTATGTTAATTTTTTAGGGTCTGATAGAATATTCATGTGTATTACAGTGGTATTCATATGCTATGTCTCT'
-    hdrbc_len = 15
-    """thresholds = {
-    'D1_D40': 60,
-    'D40_D50': 60,
-    'D50_D60': 60,
-    'D60plus': 40,
-    'I1_I20': 60,
-    'I20_I35': 45,
-    'I35_I50': 35,
-    'I50plus': 30
-    }"""
-elif target == "B2m_sg1":
-    # Define the anchors - B2m_sg1 (other direction than son)
-    left_anchor = 'ACTTGGAT' #PAM proximal
-    right_anchor = 'ACTTCTCATT' #PAM distal
-    HDR_anchor = 'TCAATGCAGT' #PAM proximal including PAM mutation if applicable
-    #B2m_sg1 150 bp
-    WT_amplicon = 'GTATTTTGATCAGAATAATAAATATAATTTTAAGAACAATAGTTGATCATATGCCAAACCCTCTGTACTTCTCATTACTTGGATGCAGTTACTCATCTTTGGTCTATCACAACATAAGTGACATACTTTCCTTTTGGTAAAGCAAAGAGGC'
-    hdrbc_len = 15
-    """thresholds = {
-    'D1_D40': 60,
-    'D40_D50': 60,
-    'D50_D60': 60,
-    'D60plus': 40,
-    'I1_I20': 60,
-    'I20_I35': 45,
-    'I35_I50': 35,
-    'I50plus': 30
-    }"""
-elif target == "GAPDH_sg13":
-    # Define the anchors - GAPDH_sg13 (other direction than son)
-    left_anchor = 'CTCCTCAC' #PAM proximal
-    right_anchor = 'AGTTGCCATG' #PAM distal
-    HDR_anchor = 'CTCCCCTTGT' #PAM proximal including PAM mutation
-    #GAPDH sg13 151 bp
-    WT_amplicon = 'GTCCCTGCCACACTCAGTCCCCCACCACACTGAATCTCCCCTCCTCACAGTTGCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCTTGTCATGTACCATCAATAAAGTACCCTGTGCTCAACCAGTTACTTGTCCTGT'
-    hdrbc_len = 15
-    """thresholds = {
-    'D1_D40': 40,
-    'D40_D50': 40,
-    'D50_D60': 30,
-    'D60plus': 24,
-    'D90plus': 100, #ignore deletions over 90nt
-    'I1_I20': 45,
-    'I20_I35': 45,
-    'I35_I50': 35,
-    'I50plus': 30
-    }"""
-    if read_length == 99:
-        WT_amplicon = 'GTCCCTGCCACACTCAGTCCCCCACCACACTGAATCTCCCCTCCTCACAGTTGCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCT'
-        """thresholds = {
-        'D1_D40': 60,
-        'D40_D50': 40,
-        'D50_D60': 40,
-        'D60plus': 35,
-        'D90plus': 100, #ignore deletions over 90nt
-        'I1_I20': 44,
-        'I20_I35': 40,
-        'I35_I50': 35,
-        'I50plus': 30
-        }"""
-elif target == "GAPDH_sg13_SNP":
-    #GAPDH_sg13_SNP
-    left_anchor = 'CTCCTCAC'  # PAM proximal
-    right_anchor = 'AGTTTCCATG'  # PAM distal
-    HDR_anchor = 'CTCCCCTACT'  # PAM proximal including PAM mutation
-    #GAPDH SNP 102 bp
-    WT_amplicon = 'GTCCCTGCCACACTCAGTCCCCCACCACACTGAATCTCCCCTCCTCACAGTTTCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCTTGT'
-    hdrbc_len = 12
-    """thresholds = {
-    'D1_D40': 60,
-    'D40_D50': 40,
-    'D50_D60': 40,
-    'D60plus': 35,
-    'D90plus': 100, #ignore deletions over 90nt
-    'I1_I20': 44,
-    'I20_I35': 40,
-    'I35_I50': 35,
-    'I50plus': 30
-    }"""
+dro_config = load_dro_config()
+target = dro_config["label"] or target
+left_anchor = dro_config["left_anchor"]
+right_anchor = dro_config["right_anchor"]
+HDR_anchor = dro_config["hdr_anchor"]
+if not HDR_anchor:
+    HDR_anchor = "__SCOUT_NO_HDR_ANCHOR__"
+WT_amplicon = dro_config["wt_amplicon"]
+hdrbc_len = dro_config["hdrbc_len"]
 
 
 

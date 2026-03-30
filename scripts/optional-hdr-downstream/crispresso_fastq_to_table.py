@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "required-core"))
 
 from bdr_utils import normalize_bdr_barcode
+from dro_target_config import load_dro_config
 
 filename_hdr = str(sys.argv[1])
 len_hdrbc = int(sys.argv[2])
@@ -69,144 +70,20 @@ else:
         return str(formatted_barcode)
     
 #read_seq is using the aligned sequence (not the raw sequence)
-
-#define scOUT target (GAPDH_sg13_SNP, Son_sg4, B2m_sg1, GAPDH_sg13)
-if target not in ["GAPDH_sg13_SNP", "Son_sg4", "B2m_sg1", "GAPDH_sg13", "Pgk1_sg1", "Gpi1_sg90", "Gpi1_sg90_200"]:
-    sys.exit("Unrecognized scOUT target. Aborting.")
-elif target == "Son_sg4":
-        # Define the anchors - Son_sg4
-    left_anchor = 'CACCCAGC' #PAM proximal
-    right_anchor = 'CGCTATTTTG' #PAM distal
-    HDR_anchor = 'GGCATGC' #PAM proximal including PAM mutation if applicable
-    #Son_sg4 150 bp
-    GSPrimer = "GATAGACGTAAATAAAAATGCTGTAAC"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 203
-    reference_length = 200
-    WT_amplicon = 'GATAGACGTAAATAAAAATGCTGTAACCGACTTATCTAATAAAAATTGGCACCCAGCCGCTATTTTGTTGACTGAGGAAGTTTATGTTAATTTTTTAGGGTCTGATAGAATATTCATGTGTATTACAGTGGTATTCATATGCTATGTCTCT'
-    WT_amplicon_after_cutsite = 'TTGGCACCCAGCCGCTATTTTGTTGACTGAGGAAGTTTATGTTAATTTTTTAGGGTCTGATAGAATATTCATGTGTATTACAGTGGTATTCATATGCTATGTCTCTAAACTTTATTTTCAAAAGCTTAAGGCCCAAATACAAACTTCTCTGGAAT'
-    hdrbc_len = 15
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
-elif target == "B2m_sg1":
-    # Define the anchors - B2m_sg1 (other direction than son)
-    left_anchor = 'ACTTGGAT' #PAM proximal
-    right_anchor = 'ACTTCTCATT' #PAM distal
-    HDR_anchor = 'TCAATGCAGT' #PAM proximal including PAM mutation if applicable
-    #B2m_sg1 150 bp
-    GSPrimer = "GTATTTTGATCAGAATAATAAATATAATTTTAAGAA"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 249
-    reference_length = 200
-    WT_amplicon = 'GTATTTTGATCAGAATAATAAATATAATTTTAAGAACAATAGTTGATCATATGCCAAACCCTCTGTACTTCTCATTACTTGGATGCAGTTACTCATCTTTGGTCTATCACAACATAAGTGACATACTTTCCTTTTGGTAAAGCAAAGAGGC'
-    WT_amplicon_after_cutsite = 'CCTCTGTACTTCTCATTACTTGGATGCAGTTACTCATCTTTGGTCTATCACAACATAAGTGACATACTTTCCTTTTGGTAAAGCAAAGAGGCCTAATTGAAGTCTGTCACTGTGCCCAATGCTTAGCAATTCTCACCCCCA'
-    hdrbc_len = 15
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
-elif target == "Pgk1_sg1":
-    # Define the anchors - B2m_sg1 (other direction than son)
-    left_anchor = 'GGTTCCTGTG' #PAM proximal
-    right_anchor = 'CTCCTAAGT' #PAM distal
-    HDR_anchor = 'GGTTTTAGTG' #not relevant
-    #Pgk1_sg1 91 bp
-    GSPrimer = "TCCTTCCTGGGGTGGATGCT"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 455
-    reference_length = 140
-    WT_amplicon = 'TCCTTCCTGGGGTGGATGCTCTCAGCAATGTTTAGTATTTTCTTTCCTGCCTTTGGTTCCTGTGCTCCTAAGTCAACCTAGTGTTTTCCACATCTCCATTTGGTGTTAGCGCAAGATTCAGCTAGTGGCTGAGATGTGGC'
-    WT_amplicon_after_cutsite = 'TTGGTTCCTGTGCTCCTAAGTCAACCTAGTGTTTTCCACATCTCCATTTGGTGTTAGCGCAAGATTCAGCTAGTGGCTGAGATGTGGC'
-    hdrbc_len = 12
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
-elif target == "Gpi1_sg90":
-    # Define the anchors - B2m_sg1 (other direction than son)
-    left_anchor = 'GTCCTCCG' #PAM proximal
-    right_anchor = 'TGTCCCTTCT' #PAM distal
-    HDR_anchor = 'GTAAGCCG' #not relevant
-    #Gpi1_sg90 91 bp
-    GSPrimer = "AAGCAACAGCGGGACACCAA"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 1114
-    reference_length = 140
-    WT_amplicon = 'AAGCAACAGCGGGACACCAAACTAGAATAACTCCAGCCGCGGCCCTACTGACTGGTCCTCCGTGTCCCTTCTCACCATATGCACTGCATGGTCCTGCCCCTCCCTGCCCAGAGCGCACCACCGGTAGTTGGCCTGGACTA'
-    WT_amplicon_after_cutsite = 'TGTCCCTTCTCACCATATGCACTGCATGGTCCTGCCCCTCCCTGCCCAGAGCGCACCACCGGTAGTTGGCCTGGACTA'
-    hdrbc_len = 12
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
-elif target == "Gpi1_sg90_200":
-    # Define the anchors 
-    left_anchor = 'GTCCTCCG' #PAM proximal
-    right_anchor = 'TGTCCCTTCT' #PAM distal
-    HDR_anchor = 'GTAAGCCG' #relevant!
-    #Gpi1_sg90 91 bp
-    GSPrimer = "AAGCAACAGCGGGACACCAA"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 1114
-    reference_length = 200
-    WT_amplicon = 'AAGCAACAGCGGGACACCAAACTAGAATAACTCCAGCCGCGGCCCTACTGACTGGTCCTCCGTGTCCCTTCTCACCATATGCACTGCATGGTCCTGCCCCTCCCTGCCCAGAGCGCACCACCGGTAGTTGGCCTGGACTACAAGGCTGTTGGGAGAAGCTGGTCTGGAACTGCCATCCACCCACTACGCACCCTCCCTGT'
-    WT_amplicon_after_cutsite = 'TGTCCCTTCTCACCATATGCACTGCATGGTCCTGCCCCTCCCTGCCCAGAGCGCACCACCGGTAGTTGGCCTGGACTACAAGGCTGTTGGGAGAAGCTGGTCTGGAACTGCCATCCACCCACTACGCACCCTCCCTGT'
-    hdrbc_len = 15
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
-elif target == "GAPDH_sg13":
-    # Define the anchors - GAPDH_sg13 (other direction than son)
-    left_anchor = 'CTCCTCAC' #PAM proximal
-    right_anchor = 'AGTTGCCATG' #PAM distal
-    HDR_anchor = 'CTCCCCTTGT' #PAM proximal including PAM mutation
-    #GAPDH sg13 151 bp
-    GSPrimer = "GTCCCTGCCACACTCAGTCCCCC"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 137
-    reference_length = 200
-    WT_amplicon = 'GTCCCTGCCACACTCAGTCCCCCACCACACTGAATCTCCCCTCCTCACAGTTGCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCTTGTCATGTACCATCAATAAAGTACCCTGTGCTCAACCAGTTACTTGTCCTGT'
-    WT_amplicon_after_cutsite = 'CCCTCCTCACAGTTGCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCTTGTCATGTACCATCAATAAAGTACCCTGTGCTCAACCAGTTACTTGTCCTGTCTTATTCTAGGGTCTGGGGCAGAGGGGAGGGAAGCTGGGCTTGTGTCAA'
-    hdrbc_len = 15
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
-    if read_length == 99 or read_length == 90:
-        cdna_length = 137
-        reference_length = 137
-        thresholds = {
-        'I90plus': 30,
-        'D90plus': 30,
-        'S1plus': 50
-        }
-elif target == "GAPDH_sg13_SNP":
-    #GAPDH_sg13_SNP
-    left_anchor = 'CTCCTCAC'  # PAM proximal
-    right_anchor = 'AGTTTCCATG'  # PAM distal
-    HDR_anchor = 'CTCCCCTACT'  # PAM proximal including PAM mutation
-    #GAPDH SNP 102 bp
-    GSPrimer = "GTCCCTGCCACACTCAGTCCCCC"
-    GSPrimer_length = len(GSPrimer)
-    cdna_length = 137
-    reference_length = 137
-    WT_amplicon = 'GTCCCTGCCACACTCAGTCCCCCACCACACTGAATCTCCCCTCCTCACAGTTTCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCTTGT'
-    WT_amplicon_after_cutsite = 'CCCTCCTCACAGTTTCCATGTAGACCCCTTGAAGAGGGGAGGGGCCTAGGGAGCCGCACCTTGTCATGTACCATCAATAAAGTACCCTGTGCTCAACCAGTTACTTGTCCTGTCTTATTCTAGGGTCTGGGGCAGAGGGGAGGGAAGCTGGGCTTGTGTCAA'
-    hdrbc_len = 12
-    thresholds = {
-    'I90plus': 30,
-    'D90plus': 30,
-    'S1plus': 50
-    }
+dro_config = load_dro_config(require_gs_primer=True, require_lengths=True)
+target = dro_config["label"] or target
+left_anchor = dro_config["left_anchor"]
+right_anchor = dro_config["right_anchor"]
+HDR_anchor = dro_config["hdr_anchor"]
+if not HDR_anchor:
+    HDR_anchor = "__SCOUT_NO_HDR_ANCHOR__"
+GSPrimer = dro_config["gs_primer"]
+GSPrimer_length = dro_config["gs_primer_length"]
+cdna_length = dro_config["cdna_length"]
+reference_length = dro_config["reference_length"]
+WT_amplicon = dro_config["wt_amplicon"]
+WT_amplicon_after_cutsite = dro_config["wt_amplicon_after_cutsite"]
+thresholds = dict(dro_config["thresholds"])
 
 
 # Function to check if the row should be filtered out based only on the first mod entry

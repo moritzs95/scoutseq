@@ -10,6 +10,15 @@ resolve_genome_file() {
   local -a candidates=()
   local candidate
 
+  if [[ -f "${genome_dir}" ]]; then
+    case "${genome_dir}" in
+      *.fa|*.fasta)
+        printf '%s\n' "${genome_dir}"
+        return 0
+        ;;
+    esac
+  fi
+
   shopt -s nullglob
 
   case "${species}" in
