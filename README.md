@@ -22,7 +22,7 @@ The main entrypoint is:
 Run it from the repository root with:
 
 ```bash
-bash ./scripts/required-core/scOUT_pipeline.sh ./example.config
+bash ./scripts/required-core/scOUT_pipeline.sh ./example_10X.config
 ```
 
 ## Requirements
@@ -72,7 +72,7 @@ For a basic run, you need:
 
 - paired FASTQ files
 - a config file
-- a reference genome FASTA in `./genome/`
+- a reference genome FASTA
 - BWA index files for that FASTA
 
 Example minimal input layout:
@@ -96,12 +96,17 @@ If you are using PARSE mode or HDR downstream analysis, more files are needed as
 
 ## Genome Files
 
-The pipeline now assumes genome files (e.g. hg38 or mm10) live under:
+By default, the pipeline looks for genome files under:
 
 - `genome/`
 
 The genome files are not included in the pipeline, so you will have to download and index them yourself.
-The helper scripts look for common filenames such as:
+The helper scripts accept either:
+
+- a directory via `GENOME_DIR` that contains a FASTA
+- or a direct FASTA path via `GENOME_DIR`
+
+When `GENOME_DIR` points to a directory, the helper scripts look for common filenames such as:
 
 - `hg38.fa`
 - `hg38.fasta`
@@ -111,7 +116,7 @@ The helper scripts look for common filenames such as:
 - `mouse.fa`
 - `AAV*.fa`
 
-For `bwa mem`, the reference must already be indexed:
+For `bwa mem`, the reference FASTA must already be indexed:
 
 ```bash
 bwa index ./genome/hg38.fa
@@ -142,7 +147,9 @@ Paths in the config may be:
 Important config variables:
 
 - `R1`, `R2`: input FASTQ files
-- `SAMPLENAME`: output folder name
+- `SAMPLENAME`: sample/output name
+- `OUTPUTDIR`: optional full output folder path; if unset, output goes to `<repo>/<SAMPLENAME>`
+- `START_AT`, `STOP_AFTER`: optional stage controls for rerunning only part of the pipeline
 - `LIBTYPE`: `10X`, `PARSE`, or `BDR`
 - `PARSEKIT`: optional PARSE barcode mode switch (for example `mini`)
 - `EXPECTEDCELLS` or `SETCELLNUMBER`: whitelist behavior
@@ -151,9 +158,39 @@ Important config variables:
 - `BDR_DIR`: directory containing BD Rhapsody helper resources such as [`BD_CLS1.txt`](./BDR_integration/BD_CLS1.txt), [`BD_CLS2.txt`](./BDR_integration/BD_CLS2.txt), [`BD_CLS3.txt`](./BDR_integration/BD_CLS3.txt), and [`BDR_Sample_Tag_Calls.csv`](./BDR_integration/BDR_Sample_Tag_Calls.csv)
 - `TARGET`, `AMPLICONSEQ`, `GUIDE`, `CRISPRESSOWINDOW`: CRISPResso settings
 - `SEQFILTER`: optional pre-filter pattern file
+- `CRISPRESSOFILTER`: optional post-CRISPResso FASTQ filter
 - `FILTERHDRREADSCONFIG`: enables HDR barcode extraction when set
 - `CBCPATH`: metadata directory for Parse or downstream cell barcode annotation (to match with transcriptome data)
-- `GENOME_DIR`: genome directory, defaults to `./genome`
+- `GENOME_DIR`: genome directory or direct FASTA path, defaults to `./genome`
+
+### Config-Driven DRO / Locus Settings
+
+The downstream HDR/editing-outcome scripts no longer rely on hard-coded target presets in Python.
+Locus-specific downstream settings are now read from the config file.
+
+At minimum, downstream HDR postprocessing expects these config variables:
+
+- `DROTARGET`: label used for logs and output naming
+- `DRO_LEFT_ANCHOR`
+- `DRO_RIGHT_ANCHOR`
+- `DRO_HDR_ANCHOR` (may be empty only for `DRO_INSERTION_TYPE="rINS"`)
+- `DRO_WT_AMPLICON`
+- `DRO_WT_AMPLICON_AFTER_CUTSITE`
+- `DROREADLENGTH`
+- `HDRBCLENGTH`
+
+For 10X and BDR HDR downstream runs, the following are also required:
+
+- `DRO_GS_PRIMER`
+- `DRO_CDNA_LENGTH`
+- `DRO_REFERENCE_LENGTH`
+- `DRO_INSERTION_TYPE`
+- `DRO_THRESHOLD_I90PLUS`
+- `DRO_THRESHOLD_D90PLUS`
+- `DRO_THRESHOLD_S1PLUS`
+- `DRO_CINS_HDRBC` when `DRO_INSERTION_TYPE="cINS"`
+
+
 
 ## Script Groups
 
@@ -216,7 +253,7 @@ Recommended config changes:
 Run:
 
 ```bash
-bash ./scripts/required-core/scOUT_pipeline.sh ./example.config
+bash ./scripts/required-core/scOUT_pipeline.sh ./example_10X.config
 ```
 
 ### 2. Full 10X run with HDR downstream analysis
@@ -257,6 +294,36 @@ This mode uses scripts from:
 - `required-core`
 - `optional-parse`
 - `optional-hdr-downstream` if HDR downstream analysis is enabled
+
+## Resume / Partial Reruns
+
+You can rerun the pipeline from a chosen stage by setting `START_AT` and optionally `STOP_AFTER` in the config.
+
+Valid stage names are:
+
+- `seq_filter`
+- `barcode_extract`
+- `parse_annotate`
+- `split_hdr`
+- `crispresso`
+- `crispresso_filter`
+- `hdr_postprocessing`
+
+Examples:
+
+```bash
+START_AT="hdr_postprocessing"
+STOP_AFTER=""
+```
+
+This reuses existing intermediates and reruns only the downstream HDR/translocation/editing-outcome analysis.
+
+```bash
+START_AT="crispresso_filter"
+STOP_AFTER="hdr_postprocessing"
+```
+
+This reruns the CRISPResso FASTQ filtering step and everything after it.
 
 ### 4. Full BDR run
 
@@ -349,7 +416,7 @@ I included an example of the different editing categories as a picture under [`o
 With the bundled example FASTQs:
 
 ```bash
-bash ./scripts/required-core/scOUT_pipeline.sh ./example.config
+bash ./scripts/required-core/scOUT_pipeline.sh ./example_10X.config
 ```
 
 Before running, make sure:
