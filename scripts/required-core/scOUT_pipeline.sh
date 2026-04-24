@@ -443,7 +443,7 @@ run_hdr_postprocessing() {
   fi
 
   if [[ -f unaligned_translocations.csv ]] && [[ "$(wc -l < unaligned_translocations.csv)" -gt 1 ]]; then
-    SCOUT_GENOME_DIR="${GENOME_DIR}" bash "${HDR_DIR}/unaligned_translocation_bwa_mem.sh" unaligned_translocations.csv "${LIBTYPE}"
+    SCOUT_GENOME_DIR="${AAV_GENOME_DIR}" bash "${HDR_DIR}/unaligned_translocation_bwa_mem.sh" unaligned_translocations.csv "${LIBTYPE}"
     if [[ "${LIBTYPE}" == "PARSE" ]]; then
       python "${PARSE_DIR}/Parse_translocation_extractor.py" "${CBCPATH}" AAV_translocation_coordinates.csv
     else
@@ -505,6 +505,7 @@ main() {
   R2="$(resolve_path "${R2}")"
   CBCPATH="$(resolve_path "${CBCPATH:-}")"
   GENOME_DIR="$(resolve_path "${GENOME_DIR:-${GENOME_DIR_DEFAULT}}")"
+  AAV_GENOME_DIR="$(resolve_path "${AAV_GENOME_DIR:-${GENOME_DIR}}")"
   BDR_DIR="$(resolve_path "${BDR_DIR:-${BDR_DIR_DEFAULT}}")"
 
   if [[ "${LIBTYPE}" == "BDR" ]]; then

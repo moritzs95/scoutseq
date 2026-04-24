@@ -25,6 +25,7 @@ def _int_env(name: str, default: Optional[int] = None) -> int:
 
 def load_dro_config(*, require_gs_primer: bool = False, require_lengths: bool = False, require_insertion_type: bool = False) -> dict[str, object]:
     hdr_anchor = os.environ.get("SCOUT_DRO_HDR_ANCHOR", "").strip()
+    insertion_type = os.environ.get("SCOUT_DRO_INSERTION_TYPE", "substitution").strip() or "substitution"
     config: dict[str, object] = {
         "label": os.environ.get("SCOUT_DRO_LABEL", "").strip(),
         "left_anchor": _require_env("SCOUT_DRO_LEFT_ANCHOR"),
@@ -51,7 +52,6 @@ def load_dro_config(*, require_gs_primer: bool = False, require_lengths: bool = 
         config["reference_length"] = _int_env("SCOUT_DRO_REFERENCE_LENGTH")
 
     if require_insertion_type:
-        insertion_type = os.environ.get("SCOUT_DRO_INSERTION_TYPE", "substitution").strip() or "substitution"
         if insertion_type not in {"substitution", "cINS", "rINS"}:
             raise SystemExit(
                 "DRO config variable 'SCOUT_DRO_INSERTION_TYPE' must be one of: substitution, cINS, rINS."
@@ -61,7 +61,7 @@ def load_dro_config(*, require_gs_primer: bool = False, require_lengths: bool = 
         config["insertion_type"] = insertion_type
         if insertion_type == "cINS":
             config["cins_hdrbc"] = _require_env("SCOUT_DRO_CINS_HDRBC")
-    elif not hdr_anchor:
+    elif not hdr_anchor and insertion_type != "rINS":
         raise SystemExit("Required DRO config variable 'SCOUT_DRO_HDR_ANCHOR' is missing.")
 
     return config
