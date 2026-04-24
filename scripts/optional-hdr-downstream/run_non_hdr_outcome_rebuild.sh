@@ -121,6 +121,10 @@ else
     > EditingOutcomeAssignment.log 2>&1
 fi
 
+python3 "${SCRIPT_DIR}/filter_incorrect_hdr_from_editing_outcomes.py" \
+  --input "${EDITING_OUTCOMES_DIR}/EditingOutcomesByCellBarcode.xlsx" \
+  --output "${EDITING_OUTCOMES_DIR}/EditingOutcomesByCellBarcode.xlsx"
+
 python3 "${CORE_DIR}/integrate_translocations_and_filter_outcomes.py" \
   --editing-outcomes EditingOutcomesByCellBarcode.xlsx \
   --output-dir "${EDITING_OUTCOMES_DIR}" \
